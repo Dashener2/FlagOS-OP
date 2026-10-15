@@ -231,6 +231,46 @@ N=5120 误差 0.6。原 softmax 样例的测试形状恰好全是整倍数，漏
 复现: `python3 ops/sdpa_math/probes/native_semantics.py`（6 节证据表）·
 黄金互验: `ops/sdpa_math/script/gen_golden.py`。
 
+<a id="20"></a>
+### 20. ⚠️ Ascend: torch_npu task queue 与 triton-ascend 无序（严重）
+
+镜像（flagrt ascend routeA）默认 `TASK_QUEUE_ENABLE=1`：torch_npu 把算子排入
+task queue 异步执行，而 triton-ascend 直接在 raw stream 上启动 kernel
+（`triton/backends/ascend/backend_register.py::get_current_stream` →
+`_npu_getCurrentRawStream`）。两者之间**没有顺序保证**——生产者算子
+（`randn`/`.to`/`mul`）尚未完成，自研 Triton kernel 就读到未初始化输入。
+
+表现极具迷惑性：**同一输入两次调用结果不同**、首次调用错而第二次对、偶发
+`NaN`；且与分配历史/调用节奏相关（在循环里插入 reference 计算或
+`synchronize()` 会改变是否命中）。实测 type_as 的 fp16→bf16 视图用例：
+`max_err` 在 0 / 4.3 / NaN 间抖动。
+
+修复: 在 torch_npu 初始化**之前**置 `TASK_QUEUE_ENABLE=0`
+（`common/device.py` 顶部强制；容器内 `/etc/profile.d` 兜底）。代价是牺牲
+task queue 的少量吞吐，对带宽型算子可忽略。检测: kernel 层哨兵的“确定性”
+子项（同输入 `torch.equal` 两次）；或 `TASK_QUEUE_ENABLE` 1/0 对照。
+
+首现: 9 个布局/分配算子 Ascend 移植。
+
+<a id="21"></a>
+### 21. Ascend torch_npu 的三处设备能力/语义差异
+
+1. **不支持 channels_last**: `.to(memory_format=torch.channels_last)` /
+   `empty_like(..., memory_format=channels_last)` 抛
+   `Only contiguous_format or preserve_format is supported`。测试在 npu 跳过
+   该 view 分支。
+2. **empty_like(preserve_format) 不保留非连续 stride**: torch_npu 原生对
+   transposed 输入返回**连续**布局（CPU 保留 `(1,1024)`）。本库 empty_like 按
+   PyTorch 文档语义（dense 保留 stride）经 meta 推导，**设备无关**；op 层判卷
+   对齐 `reference` 而非原生，黄金仍为 CPU 语义。
+3. **工厂算子 dispatch key 不同**: `aten::empty_strided` 在 torch_npu 落
+   **PrivateUse1**（无 Autograd 包装），而带 autograd 的算子落
+   **AutogradPrivateUse1**。故 A1 注册**成对覆盖两键**
+   （`register.py::_a1_keys`，sdpa_math 范式）。
+
+复现: `ops/type_as`、`ops/empty_like`、`ops/empty_strided` 的 `example.py
+ascend910` 与 `PLATFORM.md`。
+
 ## 通用检测方法
 
 | 问题类型 | 检测工具 |
@@ -246,6 +286,8 @@ N=5120 误差 0.6。原 softmax 样例的测试形状恰好全是整倍数，漏
 | call_op 长循环挂起 | 短循环（≤100 次）规避；排查见 #16 |
 | SDPA 平台语义/JIT 分化 | 397 组黄金 + S=333/D=80 尾块用例；对照 #17 / #18 |
 | A1 注册漏键 / lib 被 GC | counter dict 逐次递增 + `inference_mode`/消费方两路 intercept 计数；对照 #19 |
+| Ascend triton 非确定/NaN | 同输入两次 `torch.equal` 哨兵；`TASK_QUEUE_ENABLE` 1/0 对照；见 #20 |
+| Ascend channels_last / empty_like stride | 设备能力探测 + 对齐 reference；见 #21 |
 
 ---
 

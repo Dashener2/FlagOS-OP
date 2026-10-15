@@ -1,0 +1,21 @@
+# Ascend 910（910_9382）本地实测栈锁定（2026-10-15 实测采集 · routeA 容器）
+#
+# 用途: 核对环境是否仍与实测基线一致
+#       python3 scripts/check_env.py --device ascend910
+name: ascend910
+description: Ascend 910 本地实测版本（flagrt routeA v2.0.0 容器）
+python: "3.11.15"
+packages:
+  torch: "2.10.0+cpu"
+  torch_npu: "2.10.0"
+  flagtree: "0.6.0+ascend.git15ec1a6c"   # triton-ascend fork，导入名仍为 triton（3.5.1）
+  flag_gems: "0.0.0+f7ae8e6b934a"
+  numpy: "1.26.4"
+notes: |-
+  容器 flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64
+  （CANN 9.0.0，driver 25.5.0，SOC_VERSION=ascend910_9391）。torch 发行版本号为
+  2.10.0+cpu，torch_npu 2.10.0（PrivateUse1='npu'）；Triton 由 flagtree 提供
+  （dist=flagtree，import triton.__version__==3.5.1）；flag_gems 由镜像内置 wheel
+  安装（commit f7ae8e6b934a，版本号 0.0.0+<commit>）。
+  容器内 vllm 0.20.2+empty 为空壳安装——框架级/应用级测试暂不可跑，仅 kernel 层
+  与 op 层有效（与 configs/devices/ascend910.yaml 的 no_vllm_runtime: true 一致）。

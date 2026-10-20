@@ -25,6 +25,12 @@ dispatch: flagos→default.flagos / reference→reference.torch PASS
 性能: Triton=0.05x ms (数千 GB/s)  参考=3xx ms  加速=数千x
 ```
 
+> ⚠️ `dispatch` 段仅在**无内置 `gelu_and_mul` 注册**的插件构建上成立。
+> vllm-plugin-FL `v0.1.0+` 内置 backend 已占用同名 impl_id，本样例
+> stage2 当前 FAIL（[known-issues #23](../../docs/known-issues.md)）；
+> 精度段 9/9 不受影响。5.0 复测记录见
+> [FlagGems 5.0 复测页](../../docs/flaggems5-p800-retest.md)。
+
 ## 关键点 / 坑
 
 1. 插件入口函数必须是 `register` / `vllm_fl_register`

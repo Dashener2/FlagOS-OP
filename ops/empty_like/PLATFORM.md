@@ -21,7 +21,7 @@
 | A1 拦截 key | **AutogradPrivateUse1**（torch_npu 的 C++ Autograd 包装不 redispatch，仅注册 PrivateUse1 永不命中——见 `../sdpa/PLATFORM.md` §2） |
 | 注册键成对覆盖 | 同进程同时注册 AutogradPrivateUse1 + PrivateUse1（`sdpa_math` 范式）；工厂算子实际落 PrivateUse1 |
 | 设备同步 | `torch.npu.synchronize`（非 cuda） |
-| task queue 排序 | 镜像默认 `TASK_QUEUE_ENABLE=1`：torch 算子入 task queue 异步执行，triton-ascend 直发 raw stream，两者**无顺序保证** → 自研 kernel 读到未完成输入（非确定性错值/NaN）。`common/device.py` 在 torch_npu 初始化前强制 `TASK_QUEUE_ENABLE=0`。见 `docs/known-issues.md` #20 |
+| task queue 排序 | 镜像默认 `TASK_QUEUE_ENABLE=1`：torch 算子入 task queue 异步执行，triton-ascend 直发 raw stream，两者**无顺序保证** → 自研 kernel 读到未完成输入（非确定性错值/NaN）。`common/device.py` 在 torch_npu 初始化前强制 `TASK_QUEUE_ENABLE=0`。见 `docs/known-issues.md` #24 |
 | preserve_format | torch_npu 原生 `empty_like(preserve_format)` 对**非连续**输入退化为连续（CPU 保留 stride）。本实现按 PyTorch 文档语义（dense 保留 stride）经 meta 推导，**设备无关**；op 层判卷对齐 `reference` 而非原生。黄金仍为 CPU 语义（168/168） |
 | channels_last | torch_npu 不支持；测试在 npu 跳过 |
 |

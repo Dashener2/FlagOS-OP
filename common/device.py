@@ -43,6 +43,7 @@ class DeviceProfile:
     vendor_delegate: Optional[dict]
     reference_fallback: str
     auto_detect_module: Optional[str] = None
+    auto_detect_enabled: bool = True
     golden_engine: str = "vllm"       # vllm | transformers
     raw: dict = field(default_factory=dict)
 
@@ -108,6 +109,9 @@ def load_profile(name: str) -> DeviceProfile:
         vendor_delegate=raw.get("vendor_delegate"),
         reference_fallback=raw.get("reference_fallback", "reference.torch"),
         auto_detect_module=raw.get("auto_detect", {}).get("module"),
+        auto_detect_enabled=bool(
+            raw.get("auto_detect", {}).get("enabled", True)
+        ),
         golden_engine=raw.get("golden_engine", "vllm"),
         raw=raw,
     )
@@ -120,8 +124,16 @@ def detect_profile() -> DeviceProfile:
       1. 各 profile 的 auto_detect.module 可 import → 选中
       2. flag_gems DeviceDetector().vendor_name 匹配 profile.vendor → 选中
       3. 失败则报错并提示 --device 指定
+
+    仅 auto_detect.enabled 不为 false 的 profile 进入两条探测路径的候选；
+    禁用项仍可用 --device / load_profile() 显式选择。自动探测只选择默认
+    硬件配置，不校验软件栈版本——同硬件多软件栈（如 P800 4.2/5.0）必须
+    显式指定 profile，软件版本用 scripts/check_env.py 核对。
     """
-    profiles = [load_profile(n) for n in list_profiles()]
+    profiles = [
+        p for p in (load_profile(n) for n in list_profiles())
+        if p.auto_detect_enabled
+    ]
 
     # 路径1: 模块可导入
     import importlib

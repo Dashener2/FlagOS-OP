@@ -22,6 +22,12 @@ flowchart LR
 
 ## 使用
 
+以下命令针对已有 `p800-kunlunxin` **4.2 基线**。5.0 采集应显式使用
+`p800-kunlunxin-gems5`，先完成[环境核对](installation.md#kunlunxin)，
+并确认空闲卡和实际可见设备。当前尚未入库
+`perf/baselines/p800-kunlunxin-gems5.json`：有运行记录但无基线时，compare
+会将用例标为 `NEW`，其成功退出不表示性能无回归。
+
 ```bash
 # 1. 运行全部性能用例（样例 + kernel 层矩阵格）
 python3 scripts/perf_run.py --device p800-kunlunxin
@@ -41,6 +47,20 @@ python3 scripts/perf_run.py --list
 分配器池增长污染（实测同一 C++ kernel 顺序跑 0.31ms、全量混跑
 1.69ms，见 [已知问题](known-issues.md) #10），隔离后每条记录才是
 健康态数值。
+
+首次建立 5.0 基线时，先核对加载的用例清单和预期覆盖范围，确认纳入的
+用例均真实执行成功，再用同一 gems5 profile 的 `--update-baseline`
+保存并提交审阅。不要将 5.0 结果覆盖到
+4.2 的 `p800-kunlunxin.json`。`ops/*/script/bench_perf.py` 和
+`e2e_flagos.py` 输出的是各算子的测量报告，不会自动刷新中央性能基线。
+跨 4.2/5.0 的数字用于环境迁移对照，不能当作同环境代码回归结论。
+
+当前 `ops/sdpa/example.py::perf_cases` 仅接受中央 profile 名
+`p800-kunlunxin`，对 gems5 返回空列表。因此中央 5.0 采集尚不包含
+`ops.sdpa.p800.forward` / `ops.sdpa.native.forward`，这种未加载的用例也不会
+计为运行时 SKIP。适配完成前，SDPA 性能仍以独立脚本报告记录，不得将
+中央 gems5 基线表述为三个 P800 算子的完整覆盖；也不要改传 4.2 profile
+来掩盖覆盖缺口。
 
 ## 覆盖范围（第一期）
 

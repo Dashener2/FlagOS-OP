@@ -11,7 +11,7 @@ FlagOS-OP 是一套自定义算子的开发模板库。写一个算子并不难�
 
 ```
 应用层    vLLM · transformers
-           └ 验证: framework 验证（真实推理）
+           └ 验证: framework 应用消费者验证（真实 vLLM 或 mini consumer，按报告标注）
   ↓
 框架层    PyTorch + FlagOS dispatch
            ├ 验证: op 验证（注册/分发/拦截）
@@ -38,13 +38,17 @@ FlagOS-OP 是一套自定义算子的开发模板库。写一个算子并不难�
 
 ## 快速开始
 
+昆仑芯 P800 用户先按[环境配置](docs/installation.md#kunlunxin)区分 4.2
+基线与 5.0 复测栈。5.0 的中央测试入口须显式传 `p800-kunlunxin-gems5`；
+独立算子使用本地硬件别名，完整矩阵的已知限制见[复测页](docs/flaggems5-p800-retest.md)。
+
 ```bash
 DEVICE=<profile名> ./scripts/run_all.sh     # 全矩阵 + 一致性
 python3 run.py --route a1 --level kernel    # 单格
 python3 run.py --list                       # 查看可用设备
 python3 examples/b-fullstack/example.py     # 全链路样例（约 3 分钟）
 cp -r templates/operator ops/my_op/         # ← 新算子从这里开始
-python3 scripts/perf_compare.py --device p800-kunlunxin   # 性能回归门禁
+python3 scripts/perf_compare.py --device p800-kunlunxin   # P800 4.2 已有性能基线
 python3 scripts/intake_validate.py --validate-only        # AI 生成算子契约
 ```
 
@@ -56,19 +60,23 @@ python3 scripts/intake_validate.py --validate-only        # AI 生成算子契�
 |---|---|---|
 | 1 | [安装与 FlagGems 配合使用](docs/installation.md) | 源码仓库安装 · FlagGems 共用 · A1 注册边界 |
 | 2 | [快速开始](docs/getting-started.md) | 5 分钟跑通第一格 |
-| 3 | [体系结构](docs/architecture.md) | 物理栈 · 开发级别 · 路线 · 3×3 矩阵 |
-| 4 | [全链路指南](docs/fullstack-guide.md) | 七步流水线 · 每步抽象动作 × 样例映射 |
-| 5 | [测试体系](docs/testing.md) | 验证层级 · 黄金 · 漂移 · 一致性 |
-| 6 | [性能回归追踪](docs/performance-regression.md) | 结构化记录 · 入库基线 · 双档门禁 |
-| 7 | [验收标准](docs/acceptance.md) | 精度/性能口径 · Must/Should 分级 · 重验 runbook |
-| 8 | [算子集成指南](docs/integration.md) | 交付路径选择 · FlagGems 贡献 · 分发开销实测 |
-| 9 | [AI 生成算子接入](docs/ai-intake.md) | KernelGen/KernelBench 产物 → 三级验证 |
-| 10 | [已知问题](docs/known-issues.md) | 19 条实测记录 + 检测方法 |
+| 3 | [软硬件环境版本汇总](docs/environments.md) | 实测硬件 · 系统与软件栈 · 证据边界 |
+| 4 | [基座镜像索引](docs/base-images.md) | 六平台协作镜像 · 版本线 · 分发状态 |
+| 5 | [体系结构](docs/architecture.md) | 物理栈 · 开发级别 · 路线 · 3×3 矩阵 |
+| 6 | [全链路指南](docs/fullstack-guide.md) | 七步流水线 · 每步抽象动作 × 样例映射 |
+| 7 | [测试体系](docs/testing.md) | 验证层级 · 黄金 · 漂移 · 一致性 |
+| 8 | [性能回归追踪](docs/performance-regression.md) | 结构化记录 · 入库基线 · 双档门禁 |
+| 9 | [验收标准](docs/acceptance.md) | 精度/性能口径 · Must/Should 分级 · 重验 runbook |
+| 10 | [算子集成指南](docs/integration.md) | 交付路径选择 · FlagGems 贡献 · 分发开销实测 |
+| 11 | [AI 生成算子接入](docs/ai-intake.md) | KernelGen/KernelBench 产物 → 三级验证 |
+| 12 | [已知问题](docs/known-issues.md) | 19 条实测记录 + 检测方法 |
 
 深入主题: [A1](docs/route-a1-aten.md) / [A2](docs/route-a2-dispatch.md) / [B](docs/route-b-vendor.md) 路线详解 ·
 [设备接入](docs/device-profiles.md) · [报告](docs/reporting.md) ·
 [性能回归](docs/performance-regression.md) · [AI 生成算子](docs/ai-intake.md) ·
-[样例索引](examples/README.md)（14 个可运行样例 + 定位图）
+[软硬件环境版本汇总](docs/environments.md) ·
+[基座镜像索引](docs/base-images.md) ·
+[样例索引](examples/README.md)（15 个可运行样例 + 定位图）
 
 ## 仓库分区
 
@@ -76,8 +84,9 @@ python3 scripts/intake_validate.py --validate-only        # AI 生成算子契�
 |---|---|---|
 | [templates/](templates/) | **算子样板** + 报告模板 | 开发新算子的起点 |
 | [ops/](ops/) | **已开发算子**（样板同构，每个算子一个目录） | 开发完成、验证全绿后进入 |
+| [configs/](configs/) | 设备 profile · 实测环境锁 · 基座镜像索引 | 接入新平台、核对版本与协作镜像 |
 | [routes/](routes/) + [tests/](tests/) | 三路线正式实现 + 3×3 矩阵测试 | 实现稳定后合入 |
-| [examples/](examples/) | 14 个教学样例（按路线×层级定位） | 学习与对照 |
+| [examples/](examples/) | 15 个教学样例（按路线×层级定位） | 学习与对照 |
 | [intake/](intake/) + [perf/](perf/) | AI 生成算子通道 + 性能基线 | 自动化环节 |
 | [docs/](docs/) + [reports/examples/](reports/examples/) | 文档 + 示例报告 | 全程参考 |
 

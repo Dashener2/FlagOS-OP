@@ -100,13 +100,18 @@ Must 清单（全勾才可进 [ops/](../ops/README.md)）:
 按序执行:
 
 ```bash
-python3 scripts/check_env.py --device p800-kunlunxin --require-model   # ① 版本核对
+python3 scripts/check_env.py --device <profile>                       # ① 匹配本次软件栈的环境锁
 python3 <算子>/script/gen_golden.py --device cpu                       # ② 黄金重建
 python3 <算子>/script/check_accuracy.py --impl triton --device <profile>
 python3 scripts/perf_run.py --update-baseline --device <profile>       # ③ 基线重采
 python3 scripts/perf_compare.py --device <profile>                     # ④ 门禁
 python3 scripts/accuracy_report.py --device <profile>                  # ⑤ 三方复测
 ```
+
+昆仑芯 4.2 使用 `p800-kunlunxin`，5.0 使用 `p800-kunlunxin-gems5`，
+具体入口和可验证范围见[环境配置](installation.md#kunlunxin)。真实框架验证
+前额外执行 `check_env.py --device <profile> --require-model`；该检查只验证
+模型目录存在，仍需确认模型与引擎参数匹配。
 
 要点: ②黄金在 **CPU** 重建（最可信参考不受设备栈影响）；③基线重采
 是**有意动作**，提交信息必须写明触发原因（镜像升级/驱动变更），

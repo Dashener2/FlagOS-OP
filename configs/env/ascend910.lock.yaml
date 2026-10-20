@@ -1,21 +1,47 @@
-# Ascend 910（910_9382）本地实测栈锁定（2026-10-15 实测采集 · routeA 容器）
+# Ascend 910 实测环境锁定（合并：ops/sdpa 历史环境 + 9 算子 routeA 开发容器）
 #
-# 用途: 核对环境是否仍与实测基线一致
+# 用途: 在同构 Ascend 环境核对软件栈
 #       python3 scripts/check_env.py --device ascend910
+#
+# 说明: 本机开发容器为 flagrt routeA 镜像（CANN 9.0.0 / torch 2.10 /
+#       torch_npu 2.10 / flagtree(triton) 3.5.1 / flag_gems f7ae8e6）。
+#       `triton` 由 flagtree 发行包提供，故此处以 `flagtree` 记录。
 name: ascend910
-description: Ascend 910 本地实测版本（flagrt routeA v2.0.0 容器）
+schema: 1
+description: Ascend 910_9382（flagrt routeA 开发容器）
+collected_at: "2026-10-20"
+family: ascend
+scope:
+  - ops/sdpa Ascend 910 backend
+  - 9 个多精度/训练算子 Ascend 接入
+    （clone/empty_like/empty_strided/detach/detach_/item/_local_scalar_dense/result_type/type_as）
+hardware:
+  model: Ascend 910_9382
+  count: 8
+  memory_per_device: 64 GB HBM
+  compute: 24 AICore/卡 @ 1800MHz
+  runtime: "CANN 9.0.0"
+system:
+  os: openEuler aarch64
+  kernel: 5.10.0-216
 python: "3.11.15"
 packages:
   torch: "2.10.0+cpu"
   torch_npu: "2.10.0"
-  flagtree: "0.6.0+ascend.git15ec1a6c"   # triton-ascend fork，导入名仍为 triton（3.5.1）
+  flagtree: "0.6.0+ascend.git15ec1a6c"   # triton-ascend fork，import 名仍为 triton（3.5.1）
   flag_gems: "0.0.0+f7ae8e6b934a"
   numpy: "1.26.4"
+  vllm: "0.20.2+empty"
 notes: |-
-  容器 flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64
-  （CANN 9.0.0，driver 25.5.0，SOC_VERSION=ascend910_9391）。torch 发行版本号为
-  2.10.0+cpu，torch_npu 2.10.0（PrivateUse1='npu'）；Triton 由 flagtree 提供
-  （dist=flagtree，import triton.__version__==3.5.1）；flag_gems 由镜像内置 wheel
-  安装（commit f7ae8e6b934a，版本号 0.0.0+<commit>）。
-  容器内 vllm 0.20.2+empty 为空壳安装——框架级/应用级测试暂不可跑，仅 kernel 层
-  与 op 层有效（与 configs/devices/ascend910.yaml 的 no_vllm_runtime: true 一致）。
+  容器 flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64。
+  vLLM 为空壳安装（`0.20.2+empty`）；真实 vLLM 基线可跑，但基础 aten 的 A1 全局注入
+  受 torch_npu 内部重入限制（见 docs/known-issues.md #26）。
+  9 算子应用层采用仓库既有口径的等价消费方（mini-decoder/子进程）。
+  共享 8 卡服务器的绝对延迟存在 ±15µs 级扰动。
+evidence:
+  - path: ops/sdpa/reports/development.md
+    note: 环境声明与实现报告
+  - path: ops/sdpa/reports/performance.md
+    note: 性能环境与结果
+  - path: configs/devices/ascend910.yaml
+    note: Ascend910 设备 profile（含 TASK_QUEUE 排序前提）

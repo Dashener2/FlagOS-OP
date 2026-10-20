@@ -1,48 +1,42 @@
 # Changelog
 
-## [0.16.1] - 2026-10-02
-
-### Changed
-- **算子模板范式更新**（对齐 ops/ 实际交付）: 补 `__init__.py` 包化
-  入口、register 平台分发签名（impl/platform + AutogradPrivateUse1
-  注记）、kernel/backends/ 选择器模板、"与 ops/ 对齐"速览节——
-  新算子照模板开发即与 sdpa/embedding 同构
-
-## [0.16.0] - 2026-10-02
-
-### Added
-- **算子目录包化**（多算子同进程冲突的根治）: ops/sdpa、ops/embedding
-  加 `__init__.py`（惰性导出 register_a1/kernel 入口），包态导入
-  `from ops.sdpa import register_a1` 与单算子脚本模式兼容并存；
-  ops/test_packaging.py 四项验证全绿（双包导入/双注册同进程/双算子
-  消费数值/旧用法兼容）
-- sdpa register 的模块加载器升级"包态优先"（ops.sdpa.kernel.* 包
-  导入, 文件锚定 fallback）
-
-### Fixed
-- op_level_auto 测试的实例分裂（stats/patch 状态统一到 register
-  锚定实例）
-
-## [0.15.0] - 2026-09-30
-
-### Added
-- **embedding 第二平台 ascend910**（kernel/ascend910.py，厂商委托
-  index_select + dense_backward；register/_profile/tests 按
-  dispatch_key 平台分发；三层 + 黄金 350 PASS + Triton 探针数据
-  ——P800"生产委托"结论在 Ascend 复现，Triton gather 慢 18-69x）
-
 ## [Unreleased]
 
 ### Added
+- 新增 [软硬件环境版本汇总](docs/environments.md) 与
+  `scripts/build_env_index.py`：从 `configs/env/*.lock.yaml` 生成各实测
+  profile 的硬件、系统、Python、厂商运行时和软件包版本索引，并声明
+  CPU / NVIDIA / A100 与规划平台的证据边界；补齐 Ascend 环境锁，
+  P800 锁增加 XMLIR / XTORCH_OPS 与硬件快照
+- 新增 [基座镜像索引](docs/base-images.md) 与
+  `configs/images/catalog.yaml` / `scripts/build_base_image_index.py`：
+  按 FlagRT runtime-team 镜像索引建立六平台协作视图，登记当前外部
+  基座 tag、用途、复现状态、分发方式和 FlagOS-OP 环境锁关系；平台方
+  可按 schema 追加历史版本或新镜像，并用 CI 校验生成页一致
 - 新增 [安装与 FlagGems 配合使用](docs/installation.md)：源码仓库
   `PYTHONPATH` 口径、FlagGems 运行时 / 源码共用方式、A1 注册示例、
-  拦截计数、注册不可撤销与同算子冲突边界、常见 import / 命中问题；
+  拦截计数、注册对象生命周期与进程隔离边界、常见 import / 命中问题；
   根目录新增 `INSTALL.md` 入口；新增 `examples/operator-usage`，用同一条
   连续调用链对比 native、direct kernel、FlagGems + 多算子 A1 混合映射，
   并以子进程隔离 baseline 与注册路径、用 counter 验证命中；CPU CI 增加
   import 与 `--help` smoke test，硬件路径仍按算子 profile 复验
+- 新增 [FlagGems 5.0 兼容性复测（P800）](docs/flaggems5-p800-retest.md)：
+  环境对照、三层与黄金、微基准与 e2e 性能、路线样例矩阵、发现与修复
+  状态与复现命令——已完成的 kernel/A1/mini-consumer 证据与 4.2 基线一致、
+  推理/生成一致、训练收益收窄归因 xtorch_ops/plugin；A2 插件路线
+  BLOCKED、framework 矩阵因冒烟模型缺口未复测（待回填）；配套登记
+  `p800-kunlunxin-gems5` 设备 profile 与环境锁（4.2 基线锁保留）；
+  known-issues 新增 #20-#23（插件 per_op_order 覆盖钉选、bench
+  ValueError 容错、FlagGems 5.0 pointwise codegen `__future__` 回归、
+  A2 插件与内置 backend impl_id 冲突）与 #5 的 XPU1 Xid 补注
 
 ### Changed
+- 昆仑芯环境指南区分 FlagGems 4.2 基线与 5.0 复测栈，明确中央 profile、
+  独立算子别名、模型核验和框架子进程卡号覆盖；安装/快速开始/环境与镜像
+  索引同步链接，复测页区分历史与整改后单测数，说明 5.0 框架黄金缺失、
+  SDPA 中央性能用例未覆盖 gems5，以及性能基线单独建档的要求
+- 文档统一区分 C0 契约、C1 最小消费者和 C2 真实引擎证据等级；framework
+  层示例需注明 mini consumer 或真实 vLLM，性能数字需带 profile 和测量协议
 - **ops/ 文档契约同步（2026-10-13）**: 13 个 MLU 算子的
   README / REPORT / development / test-report 补记 PR #25 后的
   `counter + platform` 注册契约、canonical `AutogradPrivateUse1` /
@@ -60,6 +54,10 @@
   `reference` 遮蔽约束；backend 导入回归测试同步覆盖 P800 与 MLU
 
 ### Fixed
+- 环境与基座索引复核修正：embedding 的 MLU 证据归入匹配的
+  `mlu590` 环境锁；PPU 镜像引用补全 Harbor registry / namespace；
+  环境锁与镜像 catalog 增加双向关系校验；历史镜像保留稳定文档锚点；
+  Ascend 不可用范围收窄为真实 vLLM 入口
 - catalog foundation 算子的 route 校验与文档契约对齐：顶层 route 与
   “每个平台条目均声明 route”两种形式均可用；贡献指南改为维护
   `ops/catalog.yaml` 并重新生成 `ops/README.md`
@@ -68,6 +66,18 @@
   `ops.sdpa.p800.forward` SKIP；改为包态相对导入优先并保留单算子
   脚本 fallback。`perf_run` 会先清理本次选中用例的旧记录，且任一
   SKIP 直接返回失败，避免 compare 消费历史 JSON 形成“假绿”
+- **FlagGems 5.0 复测适配（known-issues #20/#21/#22）**：
+  `tests/op_level/test_b`、`examples/b-op`、`examples/b-fullstack`(stage2)
+  改用 `VLLM_FL_PER_OP` + `reset_global_policy()` 钉住 silu_and_mul 的
+  vendor 实现，对抗插件 0.2.0 平台 `op_backends` 钉序（修复前选中
+  `default.flagos`）——钉选前清掉 `VLLM_FL_OP_CONFIG`（优先级更高会
+  覆盖钉选）、断言最终 impl_id、运行结束恢复环境变量避免 `--all`
+  串跑污染；`ops/embedding/script/bench_perf.py` 容错扩为
+  `except (RuntimeError, ValueError)`，`scale_grad_by_freq=True` 原生
+  `ValueError` 不再崩整个基准（记 `native_error`）；`examples/a1-op`、
+  `examples/a2-op` 移除模块级 `from __future__ import annotations`，
+  本仓库侧规避 FlagGems 5.0 pointwise_dynamic codegen SyntaxError
+  （FlagGems 根因未修）
 
 ### Added
 - **sdpa_math 第二平台: p800-kunlunxin**（vendor O/LSE + exact-P + A1）
@@ -162,6 +172,37 @@
 - `ops/embedding/script/bench_perf.py` 反向分支原为 XPU 专用的
   `if not scale:` 跳过，MLU 上拿不到 `scale_grad_by_freq` 对照——
   改为按平台 try/except 逐个尝试原生 scale，两平台反向表均含 native 对照
+
+## [0.16.1] - 2026-10-02
+
+### Changed
+- **算子模板范式更新**（对齐 ops/ 实际交付）: 补 `__init__.py` 包化
+  入口、register 平台分发签名（impl/platform + AutogradPrivateUse1
+  注记）、kernel/backends/ 选择器模板、"与 ops/ 对齐"速览节——
+  新算子照模板开发即与 sdpa/embedding 同构
+
+## [0.16.0] - 2026-10-02
+
+### Added
+- **算子目录包化**（多算子同进程冲突的根治）: ops/sdpa、ops/embedding
+  加 `__init__.py`（惰性导出 register_a1/kernel 入口），包态导入
+  `from ops.sdpa import register_a1` 与单算子脚本模式兼容并存；
+  ops/test_packaging.py 四项验证全绿（双包导入/双注册同进程/双算子
+  消费数值/旧用法兼容）
+- sdpa register 的模块加载器升级"包态优先"（ops.sdpa.kernel.* 包
+  导入, 文件锚定 fallback）
+
+### Fixed
+- op_level_auto 测试的实例分裂（stats/patch 状态统一到 register
+  锚定实例）
+
+## [0.15.0] - 2026-09-30
+
+### Added
+- **embedding 第二平台 ascend910**（kernel/ascend910.py，厂商委托
+  index_select + dense_backward；register/_profile/tests 按
+  dispatch_key 平台分发；三层 + 黄金 350 PASS + Triton 探针数据
+  ——P800"生产委托"结论在 Ascend 复现，Triton gather 慢 18-69x）
 
 ## [0.13.0] - 2026-09-17
 

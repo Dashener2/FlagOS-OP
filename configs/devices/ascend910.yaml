@@ -5,7 +5,7 @@
 # ⚠️ 排序前提: 必须 TASK_QUEUE_ENABLE=0（早于 torch_npu 初始化）。镜像默认 1，
 # 会让 torch 算子异步入队、与 triton-ascend 直发的 raw stream 无序，自研 kernel
 # 读到未完成输入（非确定性错值/NaN）。common/device.py 顶部已强制；见
-# docs/known-issues.md #20。
+# docs/known-issues.md #24。
 # 训练/布局算子族（clone/empty_like/empty_strided/detach/detach_/item/
 # _local_scalar_dense/result_type/type_as）已接入 ascend910（各 op 的 PLATFORM.md）。
 name: ascend910

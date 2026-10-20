@@ -22,7 +22,11 @@ ROOT = Path(__file__).resolve().parents[1]
 ENV_DIR = ROOT / "configs" / "env"
 
 # 模块名 → 发行包名（importlib.metadata 用发行包名）
-DIST = {"flag_gems": "flag-gems", "vllm_fl": "vllm-plugin-fl"}
+DIST = {
+    "flag_gems": "flag-gems",
+    "vllm_fl": "vllm-plugin-fl",
+    "torch_xmlir": "xmlir",
+}
 
 
 def main() -> int:

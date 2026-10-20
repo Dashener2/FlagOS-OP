@@ -44,7 +44,7 @@ export VLLM_FL_PLUGIN_MODULES=routes.a2_dispatch.plugin.register_ops
 
 - 正式实现: `routes/a2_dispatch/`
 - 自包含样例: `examples/a2-op/`（gelu_and_mul 全流程）
-- 框架级样例: `examples/a2-framework/`（Triton silu_and_mul 注入真实推理）
+- 框架级样例: `examples/a2-framework/`（Triton silu_and_mul 注入应用消费者；是否为真实 vLLM 以样例报告标注为准）
 
 ## 注意事项
 
@@ -56,6 +56,10 @@ export VLLM_FL_PLUGIN_MODULES=routes.a2_dispatch.plugin.register_ops
    不能直接钉 impl_id
 4. 自定义数值实现的框架级断言用"前 2 token 一致率"而非全量一致
    （随机权重 + 贪心解码会把数值微差混沌放大为后期分叉）
+5. ⚠️ 插件 0.1.0 起内置 backend 已注册 `gelu_and_mul` 的
+   `default.flagos` / `reference.torch`（packed 单张量协议）——演示插件
+   同名双张量注册会被 `Duplicate impl_id` 整体拒绝
+   （[known-issues #23](known-issues.md)）
 
 > ⚠️ 写 Triton kernel 时: 启动必须包 `torch_device_fn.device(...)` 上下文，
 > 否则首次后的启动静默 no-op（[known-issues #11](known-issues.md)）。

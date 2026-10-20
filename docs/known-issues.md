@@ -39,6 +39,11 @@ tokenize+词表钳制输入。
 XPU1 上正常（vs 参考 err≈0.125、确定）；XPU2 上非确定且输出 inf。
 kernel 层哨兵检查稳定抓出——**逐设备直测的必要性实证**。
 
+5.0 复测补注: 物理 XPU1 另在 e2e/矩阵乘中触发
+`KL_XID_KERNEL_EXCEPTION` / `error 299 noc idle timeout`（dmesg 当日多次
+历史 Xid，非测试独有）。逐卡复测前先 `xpu-smi` 确认空闲，避开 `cuda:0`；
+复现与数据见 [FlagGems 5.0 复测页](flaggems5-p800-retest.md)。
+
 ## 稳定性类
 
 ### 6. 跨进程后期 token 偶发非确定性
@@ -113,6 +118,10 @@ xtriton 的 XPU libdevice 表中该 fp32 重载映射到占位符符号
 
 影响: A1（gelu_tanh）与 A2（gelu_and_mul）**没有同语义的 FlagGems
 生产基线**；自研 kernel 用 `1 - 2/(exp(2x)+1)` 手写 tanh 故不受影响。
+
+责任边界：该问题位于算子实现 / FlagGems 与框架集成边界，当前不属于
+FlagOS-OP 的修复范围。本仓库保留复现条件、影响和文档说明；后续跟踪见
+[issue #30](https://github.com/FLAG-OP/FlagOS-OP/issues/30)。
 
 ### 14. XPU Triton 编译错误被 `NameError: sys` 掩盖
 两因叠加: ① xtriton `backends/xpu/compiler.py` 的 `run_cmd()` 使用了
@@ -231,8 +240,84 @@ N=5120 误差 0.6。原 softmax 样例的测试形状恰好全是整倍数，漏
 复现: `python3 ops/sdpa_math/probes/native_semantics.py`（6 节证据表）·
 黄金互验: `ops/sdpa_math/script/gen_golden.py`。
 
-<a id="20"></a>
-### 20. ⚠️ Ascend: torch_npu task queue 与 triton-ascend 无序（严重）
+### 20. 插件平台配置的 per_op_order 覆盖 `with_preference` 钉选
+vllm-plugin-FL 自 `38e7dbc`（2026-08-19，"Support kunlunxin backend"；
+当前复测构建 `0.2.0+g38e7dbc` 含之，`v0.2.0` tag 尚无此文件）起内置
+`dispatch/config/kunlunxin.yaml`，其中
+`op_backends.silu_and_mul: [flagos, vendor, reference]` 成为该 op 的
+per-op 钉选顺序；`OpManager._resolve_impl` 用
+`policy.per_op_order_dict[op] or 默认顺序`——**平台 per_op_order 优先，
+`with_preference("vendor")` 上下文被整体绕过**。0.1.0 及更早无此平台
+配置，同写法在旧栈有效、新栈会选中 `default.flagos`。
+钉选修复（env 优先级 `VLLM_FL_OP_CONFIG`（JSON 文件路径，
+`{"op": "a|b"}`）> `VLLM_FL_PER_OP`（内联 `op=a|b;op2=x|y`）>
+平台 yaml；`OP_CONFIG` 在 `vllm_fl.utils` import 期被读入模块缓存，
+清 env 后需刷新该缓存；policy 单例缓存需重置）:
+
+```python
+os.environ["VLLM_FL_PER_OP"] = "silu_and_mul=vendor:<name>|reference"
+from vllm_fl.dispatch.policy import reset_global_policy
+reset_global_policy()
+```
+
+本库已落地: `tests/op_level/test_b.py`、`examples/b-op`、
+`examples/b-fullstack`（stage2）——三处均先保存并清掉
+`VLLM_FL_OP_CONFIG`（优先级高于 `VLLM_FL_PER_OP`，会覆盖钉选），
+`reset_global_policy()` 后断言最终选中 impl_id，运行结束恢复原环境
+变量，`--all` 同进程串跑不残留（框架层 harness 与 b-fullstack stage3
+的子进程 env 同步 pop）。实测见
+[FlagGems 5.0 复测页](flaggems5-p800-retest.md)。
+
+### 21. embedding 反向原生对照 `scale_grad_by_freq=True` 抛 ValueError
+XPU native `aten.embedding_backward(scale_grad_by_freq=True)` 抛
+`ValueError: Check scale_grad_by_freq == false failed...`（不是
+RuntimeError）；`ops/embedding/script/bench_perf.py` 原
+`except RuntimeError` 漏接 → 整个基准脚本崩溃。已修:
+`except (RuntimeError, ValueError)`——该组合记为 `native_error`、
+`native_ms=null`，其余行照常。4.2 报告中该行 native 空值同因；
+kernel 层 `scale_freq` 组测自研实现、不走原生对照，不受影响。
+
+### 22. FlagGems 5.0 pointwise_dynamic 把模块级 `__future__` import 拷进生成文件
+5.0 新增 `_collect_jit_deps`: 扫描标量函数所在模块顶层
+`from ... import ...` 并复制进生成的 codegen 文件**中部**；模块级
+`from __future__ import annotations` 被排到固定 import 头之后，每次
+`instantiate()` 即
+`SyntaxError: from __future__ imports must occur at the beginning of the file`。
+4.2.1rc0 无该 codegen（源码无 `_collect_jit_deps`），属 5.0 侧回归。
+规避: 使用 `@pointwise_dynamic` 的模块不放模块级 future import
+（`examples/a1-op`、`examples/a2-op` 已移除）；根治在 FlagGems 侧——
+生成时过滤 `__future__` 条目。
+
+### 23. A2 演示插件与内置 backend 的 `gelu_and_mul` impl_id 冲突（插件注册整体被拒）
+vllm-plugin-FL 自 `2d9ae03`（2026-03-23，`v0.1.0+` 全部含）起由内置
+flaggems/reference backend 注册 `gelu_and_mul` 的 `default.flagos` /
+`reference.torch`，协议为 **packed 单张量** `fn(obj, x)`（内部对半拆
+`[..., 2d]`）。本库 A2 插件 `routes/a2_dispatch/plugin` 以**同名
+impl_id + 双张量** `fn(obj, x, gate)` 注册:
+
+- `OpRegistry.register_many` 首项即
+  `ValueError: Duplicate impl_id 'default.flagos' for op='gelu_and_mul'`，
+  批次中止——同批的 `silu_and_mul vendor.triton-template` 一并丢失；
+  `discovery` 捕获记 error → **插件注册整体无效**
+- 测试按双张量调用落到内置实现 →
+  `TypeError: ...gelu_and_mul() takes 3 positional arguments but 4 were given`
+
+实测（5.0 栈）: `tests/op_level/test_a2` FAIL、`run.py --consistency`
+收尾格 FAIL、`examples/a2-op` stage2 FAIL。同一冲突在 4.2 环境锁声明的
+`vllm_fl 0.1.0`（tag `v0.1.0+vllm0.13.0`）源码上离体注册实验同样复现
+——非 5.0 独有；`examples/a2-op/README` 记载的 dispatch PASS 对应内置
+注册加入**之前**的更早插件构建。附带影响: `tests/framework_level/test_a2`
+与 `examples/a2-framework` 钉选的 `vendor:triton-template` 因同批中止
+不会注册（当前另受冒烟模型缺口遮蔽，见
+[FlagGems 5.0 复测页](flaggems5-p800-retest.md)）。
+
+修复方向（本轮仅记录，未改代码）: ① 插件改唯一 impl_id 并把 priority
+提到 >150（同 token 匹配内按 `(priority, impl_id)` 降序压过内置
+DEFAULT=150）；② `fn` 改 packed 单张量协议；③ 上游允许插件覆盖同名
+内置注册；④ A2 演示改用内置未占用的算子。
+
+<a id="24"></a>
+### 24. ⚠️ Ascend: torch_npu task queue 与 triton-ascend 无序（严重）
 
 镜像（flagrt ascend routeA）默认 `TASK_QUEUE_ENABLE=1`：torch_npu 把算子排入
 task queue 异步执行，而 triton-ascend 直接在 raw stream 上启动 kernel
@@ -252,8 +337,8 @@ task queue 的少量吞吐，对带宽型算子可忽略。检测: kernel 层哨
 
 首现: 9 个布局/分配算子 Ascend 移植。
 
-<a id="21"></a>
-### 21. Ascend torch_npu 的三处设备能力/语义差异
+<a id="25"></a>
+### 25. Ascend torch_npu 的三处设备能力/语义差异
 
 1. **不支持 channels_last**: `.to(memory_format=torch.channels_last)` /
    `empty_like(..., memory_format=channels_last)` 抛
@@ -271,8 +356,8 @@ task queue 的少量吞吐，对带宽型算子可忽略。检测: kernel 层哨
 复现: `ops/type_as`、`ops/empty_like`、`ops/empty_strided` 的 `example.py
 ascend910` 与 `PLATFORM.md`。
 
-<a id="22"></a>
-### 22. Ascend: torch_npu 内部调用重入 vs A1 `PrivateUse1` 覆盖冲突
+<a id="26"></a>
+### 26. Ascend: torch_npu 内部调用重入 vs A1 `PrivateUse1` 覆盖冲突
 
 在**真实 vLLM（`no_grad`）**下给基础 aten 算子做 A1 替换时，必须注册
 `PrivateUse1` 才能命中（`no_grad` 会跳过 `Autograd*` key）。但 torch_npu 内部的
@@ -323,9 +408,12 @@ Ascend 会重入，故冲突。
 | call_op 长循环挂起 | 短循环（≤100 次）规避；排查见 #16 |
 | SDPA 平台语义/JIT 分化 | 397 组黄金 + S=333/D=80 尾块用例；对照 #17 / #18 |
 | A1 注册漏键 / lib 被 GC | counter dict 逐次递增 + `inference_mode`/消费方两路 intercept 计数；对照 #19 |
-| Ascend triton 非确定/NaN | 同输入两次 `torch.equal` 哨兵；`TASK_QUEUE_ENABLE` 1/0 对照；见 #20 |
-| Ascend channels_last / empty_like stride | 设备能力探测 + 对齐 reference；见 #21 |
-| Ascend A1 注入后 0-grid/vector-core | 单键 vs 成对 key 对照 + profiler 看内部调用；见 #22 |
+| 钉选落空（选中预期外 impl） | 打印/断言 `call_op` 选中 impl_id，`VLLM_FL_PER_OP` 钉选对照；对照 #20 |
+| 插件注册整体无效 | 日志搜 `Error calling plugin` / `Duplicate impl_id`；对照 #23 |
+| 栈升级后 codegen / 脚本回归 | 路线样例与 bench 脚本全量重跑；对照 #21 / #22 |
+| Ascend triton 非确定/NaN | 同输入两次 `torch.equal` 哨兵；`TASK_QUEUE_ENABLE` 1/0 对照；见 #24 |
+| Ascend channels_last / empty_like stride | 设备能力探测 + 对齐 reference；见 #25 |
+| Ascend A1 注入后 0-grid/vector-core | 单键 vs 成对 key 对照 + profiler 看内部调用；见 #26 |
 
 ---
 

@@ -3,16 +3,53 @@
 # 用途: 同一共享镜像上核对环境是否仍与实测基线一致
 #       python3 scripts/check_env.py --device p800-kunlunxin
 name: p800-kunlunxin
-description: Kunlunxin P800 共享镜像实测版本
+schema: 1
+description: Kunlunxin P800 FlagGems 4.2 基线共享镜像实测版本
+collected_at: "2026-08-27"
+hardware_collected_at: "2026-10-16"
+family: kunlunxin
+scope:
+  - ops/sdpa P800 backend
+  - ops/sdpa_math P800 backend
+  - ops/embedding P800 backend
+  - FlagGems / vLLM 组合使用验证
+hardware:
+  model: P800 OAM
+  count: 8
+  memory_per_device: 98304 MiB
+  driver: "515.58"
+  runtime: "XPU-RT 未暴露版本"
+  firmware: "ALL 1.0.2.43.1.86"
+system:
+  os: Linux
+  kernel: 6.8.0-87-generic
 python: "3.10.18"
 packages:
   torch: "2.9.0+cu129"
+  torch_xmlir: "1.0.0.1"
+  xtorch_ops: "0.1.2640+9bc36a18"
   triton: "3.0.0+03c4c9be"
   flag_gems: "4.2.1rc0"
   vllm: "0.13.0"
   vllm_fl: "0.1.0"
   transformers: "4.57.1"
 notes: |-
+  本锁对应 FlagGems 4.2 基线；5.0 复测栈使用独立的
+  `p800-kunlunxin-gems5` profile 与环境锁。选择与运行步骤见
+  [昆仑芯环境配置](installation.md#kunlunxin)。
   flag_gems 与 vllm-plugin-fl 在共享镜像中为本地路径安装
   （/env/FlagGems、/env/xvllm-plugin-FL），核对版本即可，
-  不建议 pip 覆盖安装。
+  不建议 pip 覆盖安装。硬件快照来自 2026-10-16 的 `xpu-smi -q` 与
+  `scripts/env_snapshot.py --device p800-kunlunxin`。
+  `torch_xmlir` 对应发行包名 `xmlir`；`xtorch_ops` 对应发行包名
+  `XTorch-Ops`。
+evidence:
+  - path: ops/sdpa/reports/p800-kunlunxin.md
+    note: SDPA 平台实现与性能证据
+  - path: ops/sdpa_math/REPORT.md
+    note: sdpa_math 三层验证与 P800 性能证据
+  - path: ops/embedding/REPORT.md
+    note: embedding 三层验证与 P800 性能证据
+base_images:
+  - image_id: kunlunxin-p800-operator-runtime-v2
+    relation: version-aligned

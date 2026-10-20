@@ -71,6 +71,7 @@ def run_case(route: str, profile, out_name: str, with_plugin: bool) -> dict:
         pass  # 保留继承值
     else:
         env.pop("VLLM_FL_PREFER", None)
+    env.pop("VLLM_FL_OP_CONFIG", None)
     env.pop("VLLM_FL_PER_OP", None)
     if not with_plugin:
         env.update(_baseline_env(route, profile))

@@ -47,6 +47,13 @@ python3 scripts/build_ops_index.py --check
 - [ ] 声明 `vendor_kernels`（含哨兵负例）
 - [ ] 生成[黄金](docs/testing.md#golden) + 跑[漂移实验](docs/testing.md#drift)建立基线
 - [ ] 用[哨兵检查](docs/testing.md#sentinel)建立该设备的已知问题清单
+- [ ] 新增 `configs/env/<profile>.lock.yaml`，运行
+      `python3 scripts/build_env_index.py` 更新
+      [软硬件环境版本汇总](docs/environments.md)
+- [ ] 有协作基座镜像时，在 `configs/images/catalog.yaml` 登记平台、
+      系列、版本、分发状态和外部来源，并运行
+      `python3 scripts/build_base_image_index.py` 更新
+      [基座镜像索引](docs/base-images.md)
 
 ### 修改核心测试
 
@@ -59,8 +66,13 @@ python3 scripts/build_ops_index.py --check
 
 ```bash
 python3 -m pytest tests/unit -q                                            # 基础设施单测（无 GPU）
-python3 scripts/check_env.py --device p800-kunlunxin --require-model       # 共享镜像环境核对
+python3 scripts/check_env.py --device <profile>                            # 匹配所用软件栈的环境锁
 ```
+
+昆仑芯 4.2 基线使用 `p800-kunlunxin`，5.0 复测栈使用
+`p800-kunlunxin-gems5`（见[环境配置](docs/installation.md#kunlunxin)）。
+真实框架测试前另加 `--require-model` 检查模型目录；5.0 复测容器的默认
+模型缺失，不能把软件版本核对通过当作 framework 验证通过。
 
 ```bash
 # 文档链接与 mermaid 完整性（0 错误才过）

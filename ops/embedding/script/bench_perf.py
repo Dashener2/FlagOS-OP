@@ -144,7 +144,7 @@ def main() -> int:
                 )),
                 args.warmup, args.iters,
             )
-        except RuntimeError as exc:  # native 缺口（XPU）如实记为 null
+        except (RuntimeError, ValueError) as exc:  # native 缺口（XPU）如实记为 null
             native_ms = None
             item["native_error"] = str(exc).splitlines()[0][:80]
         if native_ms is not None:

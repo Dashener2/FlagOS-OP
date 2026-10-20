@@ -8,8 +8,6 @@
 
 运行: python3 examples/a2-op/example.py [设备profile名]
 """
-from __future__ import annotations
-
 import os
 import sys
 import time

@@ -3,7 +3,26 @@
 # 用途: 本机 Cambricon 核对环境是否仍与实测基线一致
 #       python3 scripts/check_env.py --device mlu590
 name: mlu590
+schema: 1
 description: Cambricon MLU590 实测版本
+collected_at: "2026-09-23"
+family: cambricon
+scope:
+  - ops/sdpa MLU590 backend
+  - ops/embedding Cambricon backend（算子运行 profile 为 cambricon）
+  - mini-decoder 应用层验证
+hardware:
+  model: MLU590-M9
+  count: 8
+  memory_per_device: 96 GiB
+  driver: "6.2.29"
+  firmware: "v1.5.0"
+  monitoring: "CNMON v6.5.48"
+  runtime: "CNRT 7.7.2 · CNNL 2.2.14 · CNNLExtra 2.4.0 · CNCL 1.30.8"
+  visible_device: "MLU_VISIBLE_DEVICES=7 → mlu:0"
+system:
+  os: Linux
+  kernel: 5.15.0-139-generic
 python: "3.12.13"
 packages:
   torch: "2.11.0+cpu"
@@ -13,3 +32,10 @@ packages:
 notes: |-
   torch 为 CPU 轮子 + torch_mlu 插件加速；MLU590-M9 / MLU_VISIBLE_DEVICES=7。
   本环境未安装 vLLM（profile quirks.no_vllm_runtime=true 时跳过框架层入口）。
+evidence:
+  - path: ops/embedding/reports/cambricon.md
+    note: embedding Cambricon 平台环境与验证报告
+  - path: reports/examples/sdpa_mlu590_report.md
+    note: SDPA MLU590 环境与实现报告
+  - path: reports/examples/sdpa_mlu590_test_report.md
+    note: SDPA MLU590 测试报告

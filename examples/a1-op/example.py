@@ -9,7 +9,6 @@
 
 运行: python3 examples/a1-op/example.py [设备profile名]
 """
-from __future__ import annotations
 
 import sys
 import time

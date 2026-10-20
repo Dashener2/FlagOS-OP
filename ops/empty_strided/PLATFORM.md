@@ -21,7 +21,7 @@
 | A1 拦截 key | **AutogradPrivateUse1**（torch_npu 的 C++ Autograd 包装不 redispatch，仅注册 PrivateUse1 永不命中——见 `../sdpa/PLATFORM.md` §2） |
 | 注册键成对覆盖 | 同进程同时注册 AutogradPrivateUse1 + PrivateUse1（`sdpa_math` 范式）；工厂算子实际落 PrivateUse1 |
 | 设备同步 | `torch.npu.synchronize`（非 cuda） |
-| task queue 排序 | 镜像默认 `TASK_QUEUE_ENABLE=1`：torch 算子入 task queue 异步执行，triton-ascend 直发 raw stream，两者**无顺序保证** → 自研 kernel 读到未完成输入（非确定性错值/NaN）。`common/device.py` 在 torch_npu 初始化前强制 `TASK_QUEUE_ENABLE=0`。见 `docs/known-issues.md` #20 |
+| task queue 排序 | 镜像默认 `TASK_QUEUE_ENABLE=1`：torch 算子入 task queue 异步执行，triton-ascend 直发 raw stream，两者**无顺序保证** → 自研 kernel 读到未完成输入（非确定性错值/NaN）。`common/device.py` 在 torch_npu 初始化前强制 `TASK_QUEUE_ENABLE=0`。见 `docs/known-issues.md` #24 |
 | 工厂算子 dispatch | `torch.empty_strided` 在 torch_npu 落 **PrivateUse1**（非 AutogradPrivateUse1）；仅注册 Autograd* 不会被命中。成对注册两键后命中（op 层 intercepted_calls=2） |
 |
 | 语义参考 | 见下（平台无关） |

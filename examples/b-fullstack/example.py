@@ -135,28 +135,57 @@ def stage_l2_dispatch(profile) -> bool:
     print("Stage 2/3  op 层: vendor:my-cpp 注册 → dispatch 选择")
     print("-" * 60)
 
-    os.environ["VLLM_FL_PLUGIN_MODULES"] = "fullstack_plugin"
-    sys.path.insert(0, str(HERE))
+    # VLLM_FL_OP_CONFIG（JSON 文件）优先级高于 VLLM_FL_PER_OP 且在
+    # vllm_fl.utils import 期缓存——先清掉并刷新缓存，结束后恢复原值。
+    _saved_env = {
+        k: os.environ.pop(k, None)
+        for k in ("VLLM_FL_PLUGIN_MODULES", "VLLM_FL_OP_CONFIG",
+                  "VLLM_FL_PER_OP")
+    }
+    try:
+        import vllm_fl.utils as _vllm_utils
+        if hasattr(_vllm_utils, "_load_op_config_from_env"):
+            _vllm_utils._load_op_config_from_env()
+        os.environ["VLLM_FL_PLUGIN_MODULES"] = "fullstack_plugin"
+        os.environ["VLLM_FL_PER_OP"] = "silu_and_mul=vendor:my-cpp|reference"
+        sys.path.insert(0, str(HERE))
 
-    from vllm_fl.dispatch import get_default_manager, call_op, reset_default_manager
-    from vllm_fl.dispatch.policy import with_preference, with_allowed_vendors
+        from vllm_fl.dispatch import (
+            get_default_manager,
+            call_op,
+            reset_default_manager,
+        )
+        from vllm_fl.dispatch.policy import (
+            reset_global_policy,
+            with_allowed_vendors,
+            with_preference,
+        )
 
-    reset_default_manager()
-    m = get_default_manager()
-    m.ensure_initialized()
-    ids = [i.impl_id for i in
-           m.registry.snapshot().impls_by_op.get("silu_and_mul", [])]
-    assert "vendor.my-cpp" in ids, ids
-    print(f"  注册: {ids}")
+        reset_global_policy()
+        reset_default_manager()
+        m = get_default_manager()
+        m.ensure_initialized()
+        ids = [i.impl_id for i in
+               m.registry.snapshot().impls_by_op.get("silu_and_mul", [])]
+        assert "vendor.my-cpp" in ids, ids
+        print(f"  注册: {ids}")
 
-    x = torch.randn(64, 4096, dtype=torch.bfloat16, device=dev)
-    with with_preference("vendor"), with_allowed_vendors("my-cpp"):
-        call_op("silu_and_mul", None, x)
-        used = m._called_ops["silu_and_mul"]
-    assert used == "vendor.my-cpp", used
-    print(f"  选择: {used}（with_allowed_vendors 精确钉住）")
-    print("  （框架层将用 VLLM_FL_PER_OP=silu_and_mul=vendor:my-cpp|reference 达到同样效果）")
-    return True
+        x = torch.randn(64, 4096, dtype=torch.bfloat16, device=dev)
+        with with_preference("vendor"), with_allowed_vendors("my-cpp"):
+            call_op("silu_and_mul", None, x)
+            used = m._called_ops["silu_and_mul"]
+        assert used == "vendor.my-cpp", used
+        print(f"  选择: {used}（with_allowed_vendors 精确钉住）")
+        print("  （钉选经 VLLM_FL_PER_OP=silu_and_mul=vendor:my-cpp|reference——"
+              "平台 op_backends 钉序优先于 with_preference（known-issues #20），"
+              "框架层用同一机制）")
+        return True
+    finally:
+        for _k, _v in _saved_env.items():
+            if _v is None:
+                os.environ.pop(_k, None)
+            else:
+                os.environ[_k] = _v
 
 
 def stage_l4_framework(profile) -> bool:
@@ -181,6 +210,7 @@ def stage_l4_framework(profile) -> bool:
         env["PROMPTS_AS_TOKENS"] = "1"
         env["MY_CPP_COUNT_FILE"] = count_base
         env.pop("VLLM_FL_PLUGIN_MODULES", None)
+        env.pop("VLLM_FL_OP_CONFIG", None)
         env.pop("VLLM_FL_PER_OP", None)
         # 基线钉 reference 路径（与黄金生成一致; 与 tests/framework_level/test_b 同模式）
         if not with_plugin:

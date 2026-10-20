@@ -1,0 +1,106 @@
+# FlagOS-OP 的基座镜像索引。
+# 本文件登记外部协作基座线索；FlagOS-OP 不构建、不分发这些镜像。
+schema: 1
+updated: "2026-10-16"
+source:
+  repository: FlagRT/runtime-team
+  revision: "74197bf7d4b5dc8cdd3b2b89b15ac3561936dda6"
+  path: dev/images/image_list.md
+  url: https://github.com/FlagRT/runtime-team/blob/74197bf7d4b5dc8cdd3b2b89b15ac3561936dda6/dev/images/image_list.md
+  retrieved_at: "2026-10-16"
+ownership:
+  builder: FlagRT runtime-team / 各平台基座提供方
+  consumer: FlagOS-OP 只登记线索并维护算子验证环境锁
+  boundary: 本 catalog 不表示 FlagOS-OP 已重建或验证镜像本身
+images:
+  - id: ascend-910c-operator-runtime-v3
+    family: ascend
+    series: ascend-operator-runtime
+    version: v3
+    use: 昇腾 910C 算子运行时基座
+    registry_reference: flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64
+    status: partial-repro
+    distribution: internal-build
+    current: true
+    related_profiles: []
+    flagos_op_relation: not-registered
+    notes:
+      - 内部构建层，不对外发布。
+      - FlagOS-OP 当前 ascend910 环境未登记该镜像 tag，不声明同镜像验证。
+
+  - id: ascend-910c-operator-runtime-comm-v3
+    family: ascend
+    series: ascend-operator-runtime-comm
+    version: v3
+    use: 昇腾 910C 训练腿
+    registry_reference: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    status: partial-repro
+    distribution: offline-release
+    current: true
+    related_profiles: []
+    flagos_op_relation: not-registered
+    notes:
+      - 外部源标记为训练腿发布物，带 4 条已知限制。
+      - FlagOS-OP 当前算子环境未声明训练腿验证。
+
+  - id: ascend-910c-infer-vllm-v1
+    family: ascend
+    series: ascend-infer-vllm
+    version: v1
+    use: 昇腾 910C 推理腿
+    registry_reference: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    status: registered
+    distribution: public-registry
+    current: true
+    related_profiles: []
+    flagos_op_relation: not-registered
+    notes:
+      - 华为昇腾官方镜像，外部源按 digest 锁定。
+      - FlagOS-OP 当前 ascend910 环境是 kernel/op/golden/perf 交付，未声明该推理镜像。
+
+  - id: kunlunxin-p800-operator-runtime-v2
+    family: kunlunxin
+    series: kunlun-operator-runtime
+    version: v2
+    use: 昆仑芯 P800 算子运行时基座
+    registry_reference: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+    status: functional-repro
+    distribution: internal-build
+    current: true
+    related_profiles: [p800-kunlunxin]
+    flagos_op_relation: version-aligned
+    notes:
+      - 外部源标记为可用配方重建并实机自检通过。
+      - 与 FlagOS-OP p800-kunlunxin 环境锁的 Python/torch/FlagGems 主版本线对齐。
+      - 该关联限于 FlagGems 4.2 基线；p800-kunlunxin-gems5 的 5.0 dev 复测容器尚未登记基座镜像，不应由本 tag 推断其构建来源。
+      - FlagOS-OP 未登记运行容器的 image id 或 digest，因此不声明“同镜像实例已验证”。
+
+  - id: thead-ppu-runtime-v1
+    family: thead
+    series: thead-ppu-runtime
+    version: v1
+    use: 平头哥 PPU 运行时基座
+    registry_reference: harbor.baai.ac.cn/flagtree/flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base
+    status: registered
+    distribution: public-registry
+    current: true
+    related_profiles: []
+    flagos_op_relation: platform-planned
+    notes:
+      - 外部源标记为 FlagTree 官方镜像并按 digest 锁定。
+      - FlagOS-OP 的平头哥算子矩阵仍是 planned，本行不改变支持状态。
+
+  - id: cambricon-mlu-runtime-v1
+    family: cambricon
+    series: cambricon-mlu-runtime
+    version: v1
+    use: 寒武纪 MLU590 运行时基座
+    registry_reference: harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
+    status: registered
+    distribution: public-registry
+    current: true
+    related_profiles: []
+    flagos_op_relation: not-registered
+    notes:
+      - 外部源标记为 FlagOS 官方运行时镜像并按 digest 锁定。
+      - 该镜像线为 Neuware 4.4.3；FlagOS-OP 当前 cambricon/mlu590 环境为 Neuware 4.7.6 或 torch_mlu 1.33+，不能视为同一运行环境。

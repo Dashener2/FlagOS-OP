@@ -271,6 +271,43 @@ task queue 的少量吞吐，对带宽型算子可忽略。检测: kernel 层哨
 复现: `ops/type_as`、`ops/empty_like`、`ops/empty_strided` 的 `example.py
 ascend910` 与 `PLATFORM.md`。
 
+<a id="22"></a>
+### 22. Ascend: torch_npu 内部调用重入 vs A1 `PrivateUse1` 覆盖冲突
+
+在**真实 vLLM（`no_grad`）**下给基础 aten 算子做 A1 替换时，必须注册
+`PrivateUse1` 才能命中（`no_grad` 会跳过 `Autograd*` key）。但 torch_npu 内部的
+融合算子（fused attention / rotary 等）会**重入**这批 aten
+（`clone`/`empty_like`/`empty_strided`/`item`/`_local_scalar_dense`/`type_as`），
+我们的 Python 实现连带接管内部调用 → `0-grid kernel` / `vector-core` /
+`EngineDead`。**即使把实现改成 `redispatch` 回原生仍然崩**——说明不是 impl 逻辑，
+而是“接管了这个 key”本身。
+
+实测证据（Ascend910 / torch_npu 2.10 / vllm_fl）：
+
+| 做法 | 结果 |
+|---|---|
+| 只注册 `AutogradPrivateUse1` | 不崩，但 vLLM 前向 **count=0**（no_grad 不命中） |
+| 成对注册 `AutogradPrivateUse1 + PrivateUse1` | **崩** |
+| 实现改为 `redispatch` 原生（仍成对） | **照样崩** |
+
+`torch.profiler`（进程内引擎，tiny llama 前向）统计被调用次数：
+`clone` 126 · `empty_strided` 28 · `empty_like` 16 · `detach` 16 · `item` 11 ·
+`_local_scalar_dense` 11（多为库内部调用）；`type_as`/`result_type` **0 次**。
+
+**平台对比**：MLU（torch_mlu）内部实现多直调 CNNL/私有库，**不重入 ATen
+dispatcher**，故覆盖 `PrivateUse1` 只影响用户态调用，真实 vLLM 注入可用；
+Ascend 会重入，故冲突。
+
+**生态佐证**：FlagGems 的 Ascend 后端同样用 `dispatch_key="PrivateUse1"`，但维护
+`CUSTOMIZED_UNUSED_OPS = ("to_copy","contiguous","copy_","_to_copy","sort","topk","cat")`
+——这些实现存在，但在 Ascend 上**排除注册**（含 vLLM 相关 TODO）。
+
+**做法**：
+1. 基础内存/布局/元数据算子**可以有实现**，但在 Ascend 真实 vLLM 场景
+   **不做全局 A1 启用**（排除，或 `use_gems`/`only_enable` 作用域内白名单）；
+2. 应用层验证按仓库既有口径用**等价消费方**（mini-decoder / 子进程）；
+3. 真实 vLLM 端到端应走 `vllm-plugin-fl` + FlagGems，并按其 Ascend 排除列表裁剪。
+
 ## 通用检测方法
 
 | 问题类型 | 检测工具 |
@@ -288,6 +325,7 @@ ascend910` 与 `PLATFORM.md`。
 | A1 注册漏键 / lib 被 GC | counter dict 逐次递增 + `inference_mode`/消费方两路 intercept 计数；对照 #19 |
 | Ascend triton 非确定/NaN | 同输入两次 `torch.equal` 哨兵；`TASK_QUEUE_ENABLE` 1/0 对照；见 #20 |
 | Ascend channels_last / empty_like stride | 设备能力探测 + 对齐 reference；见 #21 |
+| Ascend A1 注入后 0-grid/vector-core | 单键 vs 成对 key 对照 + profiler 看内部调用；见 #22 |
 
 ---
 

@@ -18,13 +18,13 @@ python3 script/bench_perf.py --device mlu
 
 ## P800（p800-kunlunxin）复验（2026-10-26）
 
-环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；测试设备 `cuda:1`。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
+环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；benchmark 使用空闲物理 P800（逻辑 `cuda:1`），两轮复测除 0.004 ms 级分配用例外最大偏差 <1%。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
 
 | 实现 | 延迟 (ms) |
 |---|---:|
-| reference | 0.0007 |
-| torch | 0.0006 |
+| reference | 0.0004 |
+| torch | 0.0004 |
 
-原地别名操作，reference 0.0007 ms / torch 0.0006 ms；无设备码。
+reference 0.00044 ms / torch 0.00040 ms；原地别名操作，无设备码，按设计不注册 A1。
 
 基线已写入 `perf/baselines/p800-kunlunxin.json`；`python3 scripts/perf_compare.py --device p800-kunlunxin` → **OK**（FAIL 0 / WARN 0 / NEW 0）。

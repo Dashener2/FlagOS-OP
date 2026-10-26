@@ -35,14 +35,14 @@ python3 scripts/perf_run.py --device cambricon --pattern ops.dropout
 
 ## P800（p800-kunlunxin）复验（2026-10-26）
 
-环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；测试设备 `cuda:1`。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
+环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；benchmark 使用空闲物理 P800（逻辑 `cuda:1`），两轮复测除 0.004 ms 级分配用例外最大偏差 <1%。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
 
 | 实现 | 延迟 (ms) |
 |---|---:|
-| reference | 1.299 |
-| torch | 1.304 |
-| triton | 1.325 |
+| reference | 0.385 |
+| torch | 0.385 |
+| triton | 0.385 |
 
-自研 Triton 1.325 ms / 原生 1.299 ms（约 0.98x）；P800 随机分支委托原生，train=False 与原生持平。
+自研 Triton 0.385 ms = 原生 0.385 ms（1.00x）；P800 随机分支委托原生，channels_last 已还原。
 
 基线已写入 `perf/baselines/p800-kunlunxin.json`；`python3 scripts/perf_compare.py --device p800-kunlunxin` → **OK**（FAIL 0 / WARN 0 / NEW 0）。

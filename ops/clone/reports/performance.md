@@ -31,14 +31,14 @@ python3 scripts/perf_compare.py --device cambricon
 
 ## P800（p800-kunlunxin）复验（2026-10-26）
 
-环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；测试设备 `cuda:1`。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
+环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；benchmark 使用空闲物理 P800（逻辑 `cuda:1`），两轮复测除 0.004 ms 级分配用例外最大偏差 <1%。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
 
 | 实现 | 延迟 (ms) |
 |---|---:|
-| reference | 1.174 |
-| torch | 1.166 |
-| triton | 1.403 |
+| reference | 0.245 |
+| torch | 0.245 |
+| triton | 0.478 |
 
-自研 Triton 1.403 ms / 原生 1.174 ms（约 0.84x）；纯带宽受限，与 MLU 结论一致。
+P800 上自研 Triton 拷贝 0.478 ms / 原生 0.245 ms（约 0.51x，约 1.12 TB/s vs 2.19 TB/s）；功能与黄金无误，性能瓶颈在 XMLIR 下 Triton 1D copy 的向量化/启动开销，后续可调 block/向量宽度。
 
 基线已写入 `perf/baselines/p800-kunlunxin.json`；`python3 scripts/perf_compare.py --device p800-kunlunxin` → **OK**（FAIL 0 / WARN 0 / NEW 0）。

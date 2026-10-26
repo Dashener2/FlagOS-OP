@@ -10,7 +10,8 @@
   `AutogradCUDA`/`CUDA`，设备探测走 `torch_xmlir`；P800 平台差异
   （type_as/copy_ 目标 bf16 兜底、dropout 随机分支委托原生、
   result_type fp64 skip）记入各算子 `PLATFORM.md`/`MERGE.md` 与
-  四件套报告；`p800-kunlunxin` 环境锁校准到 FlagTree 0.6.1 /
+  四件套报告；性能基线在空闲 P800 上两轮复测后重采（旧数据受共享卡
+  争用影响约 2-4x）；`p800-kunlunxin` 环境锁校准到 FlagTree 0.6.1 /
   Triton 3.6.0
 - 新增 [软硬件环境版本汇总](docs/environments.md) 与
   `scripts/build_env_index.py`：从 `configs/env/*.lock.yaml` 生成各实测

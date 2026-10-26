@@ -18,14 +18,14 @@
 | 实现路径 | torch（不注册） |
 | 三层验证 | kernel/应用等价全绿；按设计不注册（op 层拦截 0 次） |
 | 黄金 | 48/48，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 0.0044 |
+| reference | 0.0046 |
 | torch | 0.0055 |
 
-**P800 绑定结论**：不注册以避免与 empty_strided 递归；P800 仅 kernel/应用等价验证。
+**P800 绑定结论**：reference 0.0046 ms / torch 0.0055 ms；分配元数据，按设计不注册以避免与 empty_strided 递归。
 
 ## 实现矩阵（三级）
 

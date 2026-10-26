@@ -18,14 +18,14 @@
 | 实现路径 | torch |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 1 次 |
 | 黄金 | 36/36，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 0.0012 |
-| torch | 0.0018 |
+| reference | 0.0009 |
+| torch | 0.0014 |
 
-**P800 绑定结论**：共享存储的非原地视图，P800 直接复用。
+**P800 绑定结论**：reference 0.00087 ms / torch 0.00140 ms；别名/元数据操作，无设备码。
 
 ## 实现矩阵（三级）
 

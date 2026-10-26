@@ -37,14 +37,14 @@ python3 scripts/perf_run.py --device cambricon --pattern ops.contiguous
 
 ## P800（p800-kunlunxin）复验（2026-10-26）
 
-环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；测试设备 `cuda:1`。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
+环境：torch 2.9.0+cu129 / torch_xmlir 1.0.0.1 / Triton 3.6.0 / FlagGems 4.2.1rc0；benchmark 使用空闲物理 P800（逻辑 `cuda:1`），两轮复测除 0.004 ms 级分配用例外最大偏差 <1%。口径与 MLU 相同（warmup 20 + iters 100 + 设备同步）。
 
 | 实现 | 延迟 (ms) |
 |---|---:|
-| reference | 1.296 |
-| torch | 1.297 |
-| triton | 60.210 |
+| reference | 0.367 |
+| torch | 0.366 |
+| triton | 59.244 |
 
-连续性用例与原生持平；转置路径 60.2 ms（约 8.9 GB/s），正确性无损；优化方向见 PLATFORM.md。
+连续性用例 0.367 ms 与原生持平；转置路径 59.24 ms（约 9.1 GB/s），正确性无损，后续可按 XMLIR 重调 2D swizzle。
 
 基线已写入 `perf/baselines/p800-kunlunxin.json`；`python3 scripts/perf_compare.py --device p800-kunlunxin` → **OK**（FAIL 0 / WARN 0 / NEW 0）。

@@ -18,15 +18,15 @@
 | 实现路径 | Triton（P800 目标 bf16 委托原生） |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 8 次 |
 | 黄金 | 111/111，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 1.142 |
-| torch | 1.104 |
-| triton | 1.397 |
+| reference | 0.213 |
+| torch | 0.213 |
+| triton | 0.516 |
 
-**P800 绑定结论**：目标 bf16 在 P800 走原生 type_as 兜底：fp16→bf16 store 实测 misaligned，fp32→bf16 有舍入偏差；其余 dtype 走 Triton。
+**P800 绑定结论**：自研 Triton 0.516 ms / 原生 0.213 ms（约 0.41x）；目标 bf16 走原生兜底，fp16→fp32 的 Triton cast 在 P800 上仍慢于原生，后续可调 vector width。
 
 ## 实现矩阵（三级）
 

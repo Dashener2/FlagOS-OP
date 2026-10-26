@@ -18,15 +18,15 @@
 | 实现路径 | Triton |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 6 次 |
 | 黄金 | 48/48，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 1.174 |
-| torch | 1.166 |
-| triton | 1.403 |
+| reference | 0.245 |
+| torch | 0.245 |
+| triton | 0.478 |
 
-**P800 绑定结论**：bf16/fp16/fp32 同 dtype 拷贝正常；无额外兜底。
+**P800 绑定结论**：P800 上自研 Triton 拷贝 0.478 ms / 原生 0.245 ms（约 0.51x，约 1.12 TB/s vs 2.19 TB/s）；功能与黄金无误，性能瓶颈在 XMLIR 下 Triton 1D copy 的向量化/启动开销，后续可调 block/向量宽度。
 
 ## 实现矩阵（三级）
 

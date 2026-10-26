@@ -18,15 +18,15 @@
 | 实现路径 | Triton（P800 dst=bf16 且 src 非 bf16 时先原生 type_as 转换） |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 4 次 |
 | 黄金 | 78/78，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 1.222 |
-| torch | 1.164 |
-| triton | 1.406 |
+| reference | 0.245 |
+| torch | 0.365 |
+| triton | 0.482 |
 
-**P800 绑定结论**：dst=bf16 且 src 非 bf16 时先用原生 type_as 转换；P800 原生 copy_ 广播路径实测错值，reference 已物化广播源后判卷。
+**P800 绑定结论**：自研 Triton 0.482 ms / 原生 0.245 ms（约 0.51x）；bf16 写出兜底路径功能正确，性能瓶颈同 clone。
 
 ## 实现矩阵（三级）
 

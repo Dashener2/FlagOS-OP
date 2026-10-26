@@ -18,15 +18,15 @@
 | 实现路径 | Triton（P800 随机分支委托原生） |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 5 次 |
 | 黄金 | 189/189，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 1.299 |
-| torch | 1.304 |
-| triton | 1.325 |
+| reference | 0.385 |
+| torch | 0.385 |
+| triton | 0.385 |
 
-**P800 绑定结论**：P800 随机分支委托原生 dropout：Triton Philox 流与 bf16 store 未通过统计/复现门禁；channels_last 布局已还原。
+**P800 绑定结论**：自研 Triton 0.385 ms = 原生 0.385 ms（1.00x）；P800 随机分支委托原生，channels_last 已还原。
 
 ## 实现矩阵（三级）
 

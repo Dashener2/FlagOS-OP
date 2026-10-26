@@ -18,15 +18,15 @@
 | 实现路径 | Triton |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 5 次 |
 | 黄金 | 114/114，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 1.296 |
-| torch | 1.297 |
-| triton | 60.210 |
+| reference | 0.367 |
+| torch | 0.366 |
+| triton | 59.244 |
 
-**P800 绑定结论**：连续性用例与原生持平；转置路径在 P800 较慢（60.2 ms / 8.9 GB/s），正确性无损，后续可按 XMLIR 重调 2D swizzle。
+**P800 绑定结论**：连续性用例 0.367 ms 与原生持平；转置路径 59.24 ms（约 9.1 GB/s），正确性无损，后续可按 XMLIR 重调 2D swizzle。
 
 ## 实现矩阵（三级）
 

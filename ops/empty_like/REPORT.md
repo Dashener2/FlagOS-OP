@@ -18,14 +18,14 @@
 | 实现路径 | torch |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 3 次 |
 | 黄金 | 168/168，0 fail |
-| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+| 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
 | 性能用例 | 延迟 (ms) |
 |---|---:|
-| reference | 0.0049 |
-| torch | 0.0087 |
+| reference | 0.0046 |
+| torch | 0.0068 |
 
-**P800 绑定结论**：stride 由 meta 推导，设备无关；P800 直接复用。
+**P800 绑定结论**：reference 0.0046 ms / torch 0.0068 ms；stride 由 meta 推导，设备无关。
 
 ## 实现矩阵（三级）
 

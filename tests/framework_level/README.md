@@ -43,3 +43,31 @@ python3 scripts/compare_golden.py --devices <加速卡profile>,cpu
 - `scripts/drift_study.py` 可量化本栈跨进程非确定性，校准断言前缀长度
 - 输入统一为 tokenize+词表钳制的 token id（`PROMPTS_AS_TOKENS=1`），
   规避 vendor 栈 embedding 静默越界，保证跨设备输入严格一致
+
+## P800 真实 vLLM C2 实测（2026-10-26）
+
+在自建容器 `daizijian-p800-flagosop`（vllm 0.13.0 + vllm_fl 0.1.0 +
+torch_xmlir）上跑通 8 个可注入算子：
+
+```bash
+FLAGOS_DEVICE=p800-kunlunxin \
+FLAGOS_MODEL_PATH=/path/to/p800-tiny-qwen3 \
+USE_FLAGGEMS=0 \
+CUDA_VISIBLE_DEVICES=0 \
+FLAGOS_A1_OPS=type_as,clone,contiguous,dropout,empty_like,empty_strided,item,_local_scalar_dense \
+python -m pytest tests/framework_level/test_a1_aten_ops.py -q -s
+```
+
+结果：`1 passed`；真实 vLLM 前向命中 `empty_strided=1192`、`empty_like=1054`、
+`contiguous=276`，注入前后输出 token ids 逐位一致。
+
+限制（均在本机实测复现）：
+
+- `copy_` 必须从 `FLAGOS_A1_OPS` 排除：P800 bf16 兜底会走
+  `aten::type_as` / `Tensor.to`，而两者内部重新进入已注册的 `copy_`，
+  形成 `copy_ ↔ type_as/to` 递归；需改为不经过 `copy_` 的 cast。
+- `USE_FLAGGEMS=0`：FlagGems 4.2 的 P800 `gather` 在 vLLM 采样阶段报
+  `xpuLaunchKernel ... Operation not permitted(err_code: 1)`；开启
+  FlagGems 时 C2 不通过。
+- 模型需 P800 vLLM 可加载；head_dim=64 的 tiny Qwen3 已验证，
+  harness 默认 tiny Llama（head_dim=16）在本栈 model load 阶段挂起。

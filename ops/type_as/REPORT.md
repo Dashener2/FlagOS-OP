@@ -4,9 +4,29 @@
 |---|---|
 | 算子名称 | `type_as`（`self` cast 到 `other.dtype`，留在 `self.device`） |
 | 语义 | [reference.py](reference.py)（CPU 原生 `.to`，位级判卷标准） |
-| 硬件平台 | **1 个**：Cambricon MLU590（profile `cambricon`，torch_mlu；A1 canonical `AutogradPrivateUse1`，兼容 `PrivateUse1`） |
-| 目标设备 / 路线 | `cambricon`（MLU590-M9）/ **A1**（aten `type_as` 拦截） |
-| 日期 / 状态 | 2026-09-18 定稿 / 2026-10-12 注册契约同步 |
+| 硬件平台 | **2 个**：Cambricon MLU590（profile `cambricon`，torch_mlu；A1 canonical `AutogradPrivateUse1`，兼容 `PrivateUse1`）· p800-kunlunxin（P800 / XMLIR；A1 canonical `AutogradCUDA`，兼容 `CUDA`） |
+| 目标设备 / 路线 | `cambricon`（MLU590-M9）/ `p800-kunlunxin`（P800）/ **A1** |
+| 日期 / 状态 | 2026-09-18 定稿 / 2026-10-12 注册契约同步 / 2026-10-22 P800 交付 / 2026-10-26 复验 |
+
+## p800-kunlunxin 接入（2026-10-22 交付 / 2026-10-26 复验）
+
+| 项 | 结论 |
+|---|---|
+| 设备呈现 | XMLIR 将 XPU 呈现为 CUDA；`device.type == "cuda"` |
+| A1 拦截 key | `AutogradCUDA`（兼容 `CUDA`；profile `dispatch_key=CUDA`） |
+| 设备探测 | `import torch_xmlir` + `torch.cuda.is_available()` |
+| 实现路径 | Triton（P800 目标 bf16 委托原生） |
+| 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 8 次 |
+| 黄金 | 111/111，0 fail |
+| 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
+
+| 性能用例 | 延迟 (ms) |
+|---|---:|
+| reference | 1.142 |
+| torch | 1.104 |
+| triton | 1.397 |
+
+**P800 绑定结论**：目标 bf16 在 P800 走原生 type_as 兜底：fp16→bf16 store 实测 misaligned，fp32→bf16 有舍入偏差；其余 dtype 走 Triton。
 
 ## 实现矩阵（三级）
 

@@ -57,6 +57,7 @@ Must 项（适用层验证通过（C1 等价 torch API）、黄金、别名/连�
 | kernel 层 | `python3 test/kernel_level.py p800-kunlunxin` | PASS |
 | 框架层 | `python3 test/op_level.py p800-kunlunxin` | PASS；拦截 5 次 |
 | 应用层 | `python3 test/framework_level.py p800-kunlunxin` | PASS（等价 torch API 子进程） |
+| 应用层 C2 | `tests/framework_level/test_a1_aten_ops.py`（真实 vLLM） | PASS；命中 2208 次，输出逐位一致 |
 | 黄金 | `python3 script/check_accuracy.py --impl triton --device cuda:1` | 114/114，0 fail |
 | 性能门禁 | `python3 scripts/perf_compare.py --device p800-kunlunxin` | OK |
 

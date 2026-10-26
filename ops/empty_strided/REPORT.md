@@ -17,6 +17,7 @@
 | 设备探测 | `import torch_xmlir` + `torch.cuda.is_available()` |
 | 实现路径 | torch |
 | 三层验证 | `python3 example.py p800-kunlunxin` 全绿；op 层拦截 2 次 |
+| 应用层 C2 | 真实 vLLM 0.13.0 + vllm_fl 0.1.0 + Qwen2.5-0.5B-Instruct；命中 6299 次，输出 token ids 逐位一致（`USE_FLAGGEMS=0`，中央 harness） |
 | 黄金 | 30/30，0 fail |
 | 性能门禁 | 空闲 P800 两轮复测：`perf_compare --device p800-kunlunxin` = OK（FAIL 0 / WARN 0 / NEW 0） |
 
@@ -26,7 +27,6 @@
 | torch | 0.0066 |
 
 **P800 绑定结论**：reference 0.0042 ms / torch 0.0066 ms；元数据分配，直接复用。
-
 ## 实现矩阵（三级）
 
 | 开发级别 | 文件 | 状态 |

@@ -47,19 +47,22 @@ python3 scripts/compare_golden.py --devices <加速卡profile>,cpu
 ## P800 真实 vLLM C2 实测（2026-10-26）
 
 在自建容器 `daizijian-p800-flagosop`（vllm 0.13.0 + vllm_fl 0.1.0 +
-torch_xmlir）上跑通 8 个可注入算子：
+torch_xmlir）上，用现成 **Qwen2.5-0.5B-Instruct** 跑通 8 个可注入算子：
 
 ```bash
 FLAGOS_DEVICE=p800-kunlunxin \
-FLAGOS_MODEL_PATH=/path/to/p800-tiny-qwen3 \
+FLAGOS_MODEL_PATH=/workspace/.cache/models/qwen2.5-0.5b \
 USE_FLAGGEMS=0 \
 CUDA_VISIBLE_DEVICES=0 \
 FLAGOS_A1_OPS=type_as,clone,contiguous,dropout,empty_like,empty_strided,item,_local_scalar_dense \
 python -m pytest tests/framework_level/test_a1_aten_ops.py -q -s
 ```
 
-结果：`1 passed`；真实 vLLM 前向命中 `empty_strided=1192`、`empty_like=1054`、
-`contiguous=276`，注入前后输出 token ids 逐位一致。
+结果：`1 passed in 72.04s`；真实 vLLM 前向命中
+`empty_strided=6299`、`empty_like=5917`、`contiguous=2208`（total=14424），
+注入前后输出 token ids 逐位一致。模型来源为
+`/data2/evalx-workspace/models/Qwen__Qwen2.5-0.5B-Instruct`，复制到自建容器
+workspace 内使用，不占用任何其他人的容器。
 
 限制（均在本机实测复现）：
 
@@ -69,5 +72,5 @@ python -m pytest tests/framework_level/test_a1_aten_ops.py -q -s
 - `USE_FLAGGEMS=0`：FlagGems 4.2 的 P800 `gather` 在 vLLM 采样阶段报
   `xpuLaunchKernel ... Operation not permitted(err_code: 1)`；开启
   FlagGems 时 C2 不通过。
-- 模型需 P800 vLLM 可加载；head_dim=64 的 tiny Qwen3 已验证，
-  harness 默认 tiny Llama（head_dim=16）在本栈 model load 阶段挂起。
+- 更大的 Qwen3-8B 在本栈 EngineCore 初始化阶段挂起（GPU 100%、显存仅
+  166MiB），因此当前 C2 证据使用 0.5B 现成模型；8B 需要另查栈/模型兼容性。

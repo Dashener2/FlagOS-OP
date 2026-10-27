@@ -48,3 +48,20 @@ reference_fallback: reference.torch
 # 厂商 kernel 直测清单（可选）: 初代 910 无独立厂商 kernel 包，
 # 原生参照走 torch_npu 的 F.scaled_dot_product_attention（CANN 内核）
 vendor_kernels: []
+
+# A1 真实 vLLM 启用策略（对齐 FlagGems _ascend::CUSTOMIZED_UNUSED_OPS）
+# 见 docs/known-issues.md #26。这些基础 aten 会被 torch_npu 内部重入，全局
+# PrivateUse1 覆盖会破坏内部调用，故默认**不在真实 vLLM 中全局启用**；
+# 需要时走白名单 / 作用域（only_enable / use_gems(exclude=...) / 子进程隔离）。
+real_vllm:
+  enabled: false
+  excluded_ops:
+    - clone
+    - empty_like
+    - empty_strided
+    - detach
+    - detach_
+    - item
+    - _local_scalar_dense
+    - type_as
+    - result_type

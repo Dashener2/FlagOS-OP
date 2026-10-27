@@ -32,7 +32,17 @@
 - `_BACKENDS` 按可用设备消歧（同机双 NPU+MLU 时须显式 `platform=`）；
 - A1 注册键成对覆盖（同 §2）。
 
-## 4. 新平台接入
+## 4. 证据分级（C0 / C1 / C2，对齐 #42 P800）
+
+| 级别 | 含义 | 本 PR |
+|---|---|---|
+| **C0** | 黄金 + op 层（kernel/op 直测与黄金回归） | ✅ |
+| **C1** | per-op 等价消费方（等价 torch API 子进程） | ✅ |
+| **C2** | 真实 vLLM 前向实际命中 | ✖ 受 [known-issues #26](../../docs/known-issues.md#26) 限制，不做声明 |
+
+本 PR 达到 **C1**；**C2 不作为本 PR 的交付声明**。
+
+## 5. 新平台接入
 
 按 `MERGE.md` 七步走；kernel 层实现 + `PLATFORM` + `_DEVICE_PROBE` 四件并入
 `_BACKENDS`。

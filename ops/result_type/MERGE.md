@@ -24,7 +24,7 @@
 |---|---|---|
 | kernel | `python3 test/kernel_level.py ascend910` | checks=64 全过 |
 | op | `python3 test/op_level.py ascend910` | 实验态（不注册） |
-| 应用 | `python3 example.py ascend910` | 三层全绿（应用层=等价消费方子进程；真实 vLLM 受 Ascend 内部重入限制，见 [#26](../../docs/known-issues.md#26)） |
+| 应用 | `python3 example.py ascend910` | 三层全绿（应用层=C1 等价消费方子进程；真实 vLLM 受 Ascend 内部重入限制，见 [#26](../../docs/known-issues.md#26)） |
 | 黄金 | `python3 script/check_accuracy.py --impl torch/triton --device npu` | 8/8 |
 | 性能 | `python3 scripts/perf_run.py --device ascend910 --pattern ops.result_type.` | 入库 |
 

@@ -65,31 +65,18 @@ def _probe_ok(backend: str) -> bool:
 
 
 def _backend_for(dispatch_key: str, platform=None):
-    if platform is not None:
-        if platform not in _BACKENDS:
-            raise RuntimeError(
-                f"未知 platform={platform!r}; 已支持: {list(_BACKENDS)}"
-                "（新平台接入见 ops/embedding/PLATFORM.md §5）")
-        return _BACKENDS[platform]
-    by_key = {
-        "AutogradPrivateUse1": None,   # npu 与 mlu 同 key: 按可用设备消歧
-        "PrivateUse1": None,           # torch_mlu 后端 key; 同样按设备消歧
-    }
-    if dispatch_key not in by_key:
+    # 平台由 profile 显式传入（profile.vendor）；不再按设备探测自动选择。
+    # Dashener2 2026-10-20-fix: 按 review #34 收敛（避免“探测到哪个设备就优先选哪个”）。
+    if platform is None:
         raise RuntimeError(
-            f"未知 dispatch_key={dispatch_key!r}; 已支持: {list(by_key)}"
-            "（或显式传 platform）")
-    backend = by_key[dispatch_key]
-    if backend is None:
-        if _probe_ok("ascend"):
-            backend = "ascend"
-        elif _probe_ok("cambricon"):
-            backend = "cambricon"
-        else:
-            raise RuntimeError(
-                f"dispatch_key={dispatch_key!r} 需要可用的 Ascend(torch_npu) "
-                "或 MLU(torch_mlu) 设备（或显式传 platform）")
-    return backend
+            "register_a1 需要显式 platform（应为 profile.vendor，如 "
+            f"{sorted(_BACKENDS)}）；dispatch_key={dispatch_key!r} "
+            "已不再自动推断（见 ops/embedding/PLATFORM.md §5）")
+    if platform not in _BACKENDS:
+        raise RuntimeError(
+            f"未知 platform={platform!r}; 已支持: {list(_BACKENDS)}"
+            "（新平台接入见 ops/embedding/PLATFORM.md §5）")
+    return _BACKENDS[platform]
 
 
 def _probe_guard(backend: str, dispatch_key: str) -> None:

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "op": "empty_like",
+  "device": "ascend910",
+  "status": "C2",
+  "method": "vLLM EngineCore (multiprocess; VLLM_ENABLE_V1_MULTIPROCESSING default=1)",
+  "registration": "aten::empty_like @ AutogradPrivateUse1 + PrivateUse1 (platform=ascend)",
+  "engine": "vllm 0.20.2+empty + vllm-plugin-fl (vllm_fl.PlatformFL, device_type=npu)",
+  "model": "/tmp/flagos_tiny_llama (tiny llama: hidden=64, heads=4, layers=2, head_dim=16)",
+  "dtype": "auto -> bfloat16",
+  "prompt": "the future of AI is",
+  "sampling": {"max_tokens": 8, "temperature": 0.0},
+  "commands": {
+    "baseline": "ASCEND_RT_VISIBLE_DEVICES=1 python3 scratch/repro_mp/run.py",
+    "injected": "FLAGOS_DIRECT_INJECT=1 FLAGOS_DIRECT_OPS=empty_like A1_PLATFORM=ascend FLAGOS_COUNT_DUMP=/tmp/c2dump python3 scratch/repro_mp/run.py"
+  },
+  "baseline_token_ids": [7, 21, 1, 18, 10, 23, 21, 1],
+  "injected_token_ids": [7, 21, 1, 18, 10, 23, 21, 1],
+  "output_match": true,
+  "hit_count": 97,
+  "env": {
+    "driver": "25.5.0",
+    "cann": "9.0.0",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0",
+    "triton": "3.5.1 (flagtree 0.6.0+ascend.git15ec1a6c)",
+    "flag_gems": "0.0.0+f7ae8e6b934a",
+    "vllm": "0.20.2+empty",
+    "vllm_plugin_fl": "0.0.0+g8b059122e.d20261008",
+    "soc": "Ascend910_9382"
+  },
+  "captured_at": "2026-11-03"
+}

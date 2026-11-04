@@ -58,7 +58,7 @@
 
 ### 复现与替代路径
 
-复现: `scripts/e2e_vllm_c2_ascend.py --op detach`（`FakeTensor ... already associated ...`）。替代路径: 不在 vLLM 进程内注册 detach（保持 kernel/op 层验证），或等 vLLM 建模兼容。
+复现: `python3 scripts/c2_enginecore/validate.py --op detach --model /tmp/c2model`（`FakeTensor ... already associated ...`）。替代路径: 不在 vLLM 进程内注册 detach（保持 kernel/op 层验证）。
 
 ## 6. 新平台接入
 

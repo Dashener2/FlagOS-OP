@@ -59,7 +59,7 @@
 
 ### 复现与替代路径
 
-复现: `scripts/e2e_vllm_c2_ascend.py --op clone`（Triton kernel 触发 vector core）。替代路径: Ascend 上对 strided/异常 shape 走 `out.copy_(src)` 兜底，或修复 `_clone_*` kernel 后重判 C2。
+复现: `python3 scripts/c2_enginecore/validate.py --op clone --model /tmp/c2model`（Triton kernel 触发 vector core）。替代路径: Ascend strided/异常 shape 走 `out.copy_(src)` 兜底或修复 `_clone_*` kernel 后重判。
 
 ## 6. 新平台接入
 

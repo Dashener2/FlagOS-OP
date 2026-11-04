@@ -14,7 +14,7 @@
 #   （区别于 platform_families 的 partial = 平台交付部分完成）。
 
 schema: 1
-updated: 2026-11-03
+updated: 2026-11-04
 
 target_scope:
   vendor_family_count: 6
@@ -175,6 +175,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: Triton
+        evidence:
+          level: C1
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -194,6 +196,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: Triton
+        evidence:
+          level: C1
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -262,6 +266,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          level: C1
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -281,6 +287,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          level: C0
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -300,6 +308,11 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          - profile: ascend910
+            level: C2
+            report: ops/empty_like/reports/ascend910-c2.md
+            status: complete-pending-review
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -336,6 +349,11 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          - profile: ascend910
+            level: C2
+            report: ops/empty_strided/reports/ascend910-c2.md
+            status: complete-pending-review
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -356,6 +374,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          level: C0
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -375,6 +395,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          level: C1
       cambricon:
         profiles: [cambricon]
         evidence:
@@ -394,6 +416,8 @@ operators:
       ascend:
         profiles: [ascend910]
         implementation: torch 级
+        evidence:
+          level: C1
       cambricon:
         profiles: [cambricon]
         evidence:

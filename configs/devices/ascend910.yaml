@@ -23,8 +23,9 @@ device:
   dispatch_key: AutogradPrivateUse1
 
 framework:
-  # 本栈 vllm 0.20.2+empty 为空壳安装——框架级/应用级测试暂不可跑，
-  # 仅 kernel 层与 op 层有效（算子交付以两层 + 黄金 + 性能对照收口）
+  # vllm 0.20.2+empty + vllm-plugin-fl（PlatformFL）在本 profile 可用：真实
+  # EngineCore 前向已验证（见 scripts/c2_enginecore/、known-issues #26）。
+  # 注意与 ascend910-c2-vllm（vLLM-Ascend 栈）区分。
   tensor_parallel_size: 1
   distributed_executor_backend: mp
   max_model_len: 4096
@@ -39,7 +40,7 @@ framework:
   quirks:
     keep_default_prefer: false
     require_two_visible_devices: false
-    no_vllm_runtime: true       # 空壳 vllm: 跳过框架/应用层入口
+    no_vllm_runtime: false      # 真实 vLLM（vllm-plugin-fl）可用；C2 见 known-issues #26
 
 vendor_delegate: null
 
@@ -49,21 +50,21 @@ reference_fallback: reference.torch
 # 原生参照走 torch_npu 的 F.scaled_dot_product_attention（CANN 内核）
 vendor_kernels: []
 
-# A1 真实 vLLM 启用策略（对齐 FlagGems _ascend::CUSTOMIZED_UNUSED_OPS）
-# 见 docs/known-issues.md #26。这些基础 aten 会被 torch_npu 内部重入，全局
-# PrivateUse1 覆盖会破坏内部调用，故默认**不在真实 vLLM 中全局启用**；
-# 需要时走白名单 / 作用域（only_enable / use_gems(exclude=...) / 子进程隔离）。
+# A1 真实 vLLM 启用策略（见 docs/known-issues.md #26）
+# enabled=false 表示“禁止默认全量启用”；白名单 c2_verified_ops 曾按 EngineCore
+# 三段（init/gen/final）+ token 对拍验证。其余算子按 excluded_ops 的原因排除，
+# 需要时走作用域/子进程隔离（only_enable / use_gems(exclude=...)）。
 real_vllm:
   enabled: false
-  # 经真实 vLLM（in-process EngineCore）逐算子实测：
-  #   C2（命中且输出一致）: empty_like, empty_strided
-  #   C1（未证明命中/不兼容/不可注册）: 其余
+  # 经真实 vLLM（EngineCore 多进程，生成阶段计数）逐算子实测：
+  #   C2（生成阶段命中且输出一致）: empty_like(gen=16), empty_strided(gen=11)
+  #   其余: C1（未命中/不兼容）或 C0（不可注册/未消费）
   c2_verified_ops: [empty_like, empty_strided]
   excluded_ops:
     - clone            # Triton kernel 在真实 vLLM 前向触发 vector core（待修）
     - detach           # 注册破坏 nn.Parameter/FakeTensor 构造（已知不兼容）
     - detach_          # 按设计不可 A1 注册
-    - item             # 参考模型未调用（count=0），未证明命中
-    - _local_scalar_dense  # 参考模型未调用（count=0），未证明命中
-    - type_as          # 参考模型未调用（count=0），未证明命中
+    - item             # 生成阶段未命中（engine 阶段计数 gen=0）
+    - _local_scalar_dense  # 生成阶段未命中（engine 阶段计数 gen=0）
+    - type_as          # 生成阶段未命中（engine 阶段计数 gen=0）
     - result_type      # 按设计不可 A1 注册

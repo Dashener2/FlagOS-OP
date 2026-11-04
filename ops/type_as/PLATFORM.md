@@ -59,7 +59,7 @@
 
 ### 复现与替代路径
 
-复现: `python3 scripts/e2e_vllm_c2_ascend.py --op type_as --model <tiny>`（当前参考模型前向 count=0）。替代路径: 换一个会调用 `type_as` 的参考模型/输入后重判 C2。
+复现: `python3 scripts/c2_enginecore/validate.py --op type_as --model /tmp/c2model`（生成阶段 count=0 → 验收非零退出）。替代路径: 换会调用 `type_as` 的模型/输入后重判。
 
 ## 6. 新平台接入
 

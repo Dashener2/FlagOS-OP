@@ -386,8 +386,8 @@ head_dim=16）上，对 9 个基础 aten 算子逐个做「直接注册（`platf
 
 | 算子 | 实测结果 | 级别 |
 |---|---|---|
-| `empty_strided` | 命中 count=109，token 与基线逐位一致 | **C2** |
-| `empty_like` | 命中 count=97，一致 | **C2** |
+| `empty_strided` | 生成阶段命中 gen=11（init=98/final=109），token 逐位一致 | **C2** |
+| `empty_like` | 生成阶段命中 gen=16（init=81/final=97），一致 | **C2** |
 | `type_as` / `item` / `_local_scalar_dense` | 注册正常、不崩，但参考模型前向未调用（count=0） | C1 |
 | `clone` | Triton kernel 在真实前向触发 vector core（待修） | C1 |
 | `detach` | 注册破坏 `nn.Parameter`/FakeTensor 构造（已知不兼容） | C1 |
@@ -403,7 +403,7 @@ head_dim=16）上，对 9 个基础 aten 算子逐个做「直接注册（`platf
 
 因此不要把 #26 当成「所有基础算子 C2 不可行」的通用阻断；应按算子 allowlist 处理。
 
-复现: `scripts/e2e_vllm_c2_ascend.py`（`--op __baseline__` 与 `--op <name>` 各跑一次，比较 ids/count）。
+复现: `scripts/c2_enginecore/validate.py`（EngineCore 多进程 baseline/init-only/injected，`execute_model` 前后快照区分 init 与生成阶段命中；失败非零退出，负例见 `tests/unit/test_c2_enginecore_decide.py`）。
 
 **做法**：Ascend 真实 vLLM 默认只允许 `c2_verified_ops`（当前 `empty_like` /
 `empty_strided`）全局启用，见 `configs/devices/ascend910.yaml::real_vllm`；

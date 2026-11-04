@@ -44,7 +44,7 @@
 | 实现路径 | torch 级 |
 | 路线 | 纯元数据（dtype 提升），按设计不可 A1 注册；仅 kernel 层验证 |
 | task queue 排序 | 镜像默认 `TASK_QUEUE_ENABLE=1`，torch 异步队列与 triton-ascend 直发 raw stream 无序；`common/device.py` 在 Ascend 显式 opt-in 下置 0（[#24](../../docs/known-issues.md#24)） |
-| 证据级别 | **C1**：按设计不可 A1 注册（纯元数据） |
+| 证据级别 | **C0**（原生应用 smoke；未消费仓库实现） |
 
 ## 5. 证据分级（C0 / C1 / C2，对齐 #42 P800）
 
@@ -52,9 +52,9 @@
 |---|---|---|
 | **C0** | 黄金 + op 层 | ✅ |
 | **C1** | per-op 等价消费方（等价 torch API 子进程） | ✅ |
-| **C2** | 真实 vLLM 前向实际命中 | ✖（按设计不可 A1 注册（纯元数据）） |
+| **C2** | 真实 vLLM 前向实际命中 | ✖（不适用：未消费仓库实现） |
 
-本算子达到 **C1**（按设计不可 A1 注册（纯元数据）），C2 不作声明。
+本算子按 **C0**（原生应用 smoke）登记：framework 测试只调原生 torch API，未消费仓库实现；不声明 C1/C2。
 
 ### 复现与替代路径
 

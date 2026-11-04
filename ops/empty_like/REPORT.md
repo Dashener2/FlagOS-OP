@@ -71,6 +71,6 @@
 |---|---|---|
 | **C0** | 黄金 + op 层 | ✅ |
 | **C1** | per-op 等价消费方（等价 torch API 子进程） | ✅ |
-| **C2** | 真实 vLLM 前向实际命中（EngineCore 多进程双跑） | ✅（count=97，token 逐位一致；见 [reports/e2e_vllm_c2_ascend910.json](reports/e2e_vllm_c2_ascend910.json)） |
+| **C2** | 真实 vLLM 前向实际命中（EngineCore 三段，生成阶段命中） | ✅（init=81 / **gen=16** / final=97，token 逐位一致；见 [reports/c2_ascend910/summary.json](reports/c2_ascend910/summary.json)） |
 
-结论：本算子达到 **C2**（EngineCore 多进程双跑，count=97，见 reports/e2e_vllm_c2_ascend910.json）。
+结论：本算子达到 **C2**（EngineCore 三段：init=81 / gen=16 / final=97，见 reports/c2_ascend910/summary.json）。

@@ -22,15 +22,10 @@ from typing import Any, Optional
 #   - 或 `FLAGOS_DEVICE` / `FLAGOS_PROFILE` / 命令行参数里指明 ascend profile。
 # 未命中则不触碰 TASK_QUEUE_ENABLE（CPU/MLU/CUDA 及同机其它进程不受影响）。
 # # Dashener2 <dashen272@outlook.com>
-_tq_opt = os.environ.get("FLAGOS_ASCEND_TASK_QUEUE")
-if _tq_opt != "1":
-    _asc_hint = " ".join([
-        os.environ.get("FLAGOS_DEVICE", ""),
-        os.environ.get("FLAGOS_PROFILE", ""),
-        " ".join(a for a in sys.argv[1:] if not a.startswith("-")),
-    ]).lower()
-    if _tq_opt == "0" or "ascend" in _asc_hint:
-        os.environ["TASK_QUEUE_ENABLE"] = "0"
+from common.ascend_env import task_queue_opt_in  # noqa: E402
+
+if task_queue_opt_in(sys.argv[1:], os.environ):
+    os.environ["TASK_QUEUE_ENABLE"] = "0"
 
 import torch  # noqa: F401  # 必须早于 xpu_compat(→triton) 导入：MLU 栈
 # 要求先 import torch，否则 torch.library 的 triton 命名空间重复注册报错

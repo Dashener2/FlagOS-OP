@@ -45,7 +45,7 @@
 | preserve_format | torch_npu 原生 `empty_like(preserve)` 对非连续输入退化为连续；本实现按文档语义经 meta 推导、设备无关；op 层判卷对齐 reference |
 | channels_last | torch_npu 不支持；测试在 npu 跳过 |
 | task queue 排序 | 镜像默认 `TASK_QUEUE_ENABLE=1`，torch 异步队列与 triton-ascend 直发 raw stream 无序；`common/device.py` 在 Ascend 显式 opt-in 下置 0（[#24](../../docs/known-issues.md#24)） |
-| 证据级别 | **C2**（EngineCore 多进程双跑：count=97，token 与基线逐位一致；见 [reports/e2e_vllm_c2_ascend910.json](reports/e2e_vllm_c2_ascend910.json)） |
+| 证据级别 | **C2**（EngineCore 多进程三段：init=81/gen=16/final=97，token 与基线逐位一致；见 [reports/c2_ascend910/summary.json](reports/c2_ascend910/summary.json)） |
 
 ## 5. 证据分级（C0 / C1 / C2，对齐 #42 P800）
 
@@ -59,7 +59,7 @@
 
 ### 复现与替代路径
 
-复现（EngineCore）: `ASCEND_RT_VISIBLE_DEVICES=1 python3 scratch/repro_mp/run.py` 对比 `FLAGOS_DIRECT_INJECT=1 FLAGOS_DIRECT_OPS=empty_like A1_PLATFORM=ascend ...`；证据见 `reports/e2e_vllm_c2_ascend910.json`。
+复现: 见 `scripts/c2_enginecore/README.md`；证据见 [reports/c2_ascend910/summary.json](reports/c2_ascend910/summary.json)（init/gen/final 三段计数）。
 
 ## 6. 新平台接入
 

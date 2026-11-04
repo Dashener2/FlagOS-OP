@@ -13,4 +13,4 @@
   **init=81 · generation=16 · final=97**；`passed=true`
 - **证据**: [c2_ascend910/summary.json](c2_ascend910/summary.json) + `baseline/stdout` 日志 +
   每 PID `count_<pid>.json`（init/generation/final）
-- **复现**: 见 [scripts/c2_enginecore/README.md](../../../../scripts/c2_enginecore/README.md)
+- **复现**: 见 [scripts/c2_enginecore/README.md](../../../scripts/c2_enginecore/README.md)

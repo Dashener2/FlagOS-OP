@@ -33,13 +33,13 @@
 
 - stride 由 meta 推导，设备无关；P800 直接复用。
 
-## 验证矩阵（Ascend910 / C1）
+## 验证矩阵（Ascend910 / C2）
 
 | 层 | 命令 | 结果 |
 |---|---|---|
 | kernel | `python3 test/kernel_level.py ascend910` | PASS |
 | op | `python3 test/op_level.py ascend910` | PASS |
-| 应用 | `python3 example.py ascend910` | 三层全绿（应用层=C1 等价消费方） |
+| 应用 | `python3 scripts/c2_enginecore/validate.py --op empty_like --model /tmp/c2model` | **C2**：EngineCore 三段（init/gen/final）+ token 对拍，见 [reports/c2_ascend910/summary.json](reports/c2_ascend910/summary.json) |
 | 黄金 | `python3 script/check_accuracy.py --impl torch --device npu` | 全过 |
 | 性能 | `python3 scripts/perf_run.py --device ascend910 --pattern "ops.empty_like." --update-baseline` | OK |
 

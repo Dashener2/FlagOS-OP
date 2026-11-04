@@ -35,8 +35,9 @@ packages:
 notes: |-
   容器 flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64。
   vLLM 为空壳安装（`0.20.2+empty`）；真实 vLLM 基线可跑，但基础 aten 的 A1 全局注入
-  受 torch_npu 内部重入限制（见 docs/known-issues.md #26）。
-  9 算子应用层采用仓库既有口径的等价消费方（mini-decoder/子进程）。
+  #26 为「按算子边界」（非全局内部重入阻断）。empty_like / empty_strided 已按
+  EngineCore 三段（init/gen/final）+ token 对拍达 C2（见各 op reports/c2_ascend910/）；
+  其余算子为 C1（未命中/不兼容）或 C0（不可注册/未消费）。
   共享 8 卡服务器的绝对延迟存在 ±15µs 级扰动。
 evidence:
   - path: ops/sdpa/reports/development.md

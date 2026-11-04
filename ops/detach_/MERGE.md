@@ -43,6 +43,5 @@
 | 黄金 | `python3 script/check_accuracy.py --impl torch --device npu` | 全过 |
 | 性能 | `python3 scripts/perf_run.py --device ascend910 --pattern "ops.detach_." --update-baseline` | OK |
 
-Ascend 接入要点：`register.py` 增加 `ascend` 后端与成对 key
-（`AutogradPrivateUse1` + `PrivateUse1`）；基础 aten 默认不在真实 vLLM 全局启用
-（见 `PLATFORM.md` 与 `docs/known-issues.md` #26）。
+Ascend 接入要点：按设计**不可 A1 注册**（保持 `NotImplementedError`）；
+仅做 kernel/op 层与原生应用 smoke，不声明 C1/C2（见 `PLATFORM.md`）。

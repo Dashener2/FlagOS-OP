@@ -376,6 +376,19 @@ operators:
         evidence:
           level: C1
 
+  - name: scatter_
+    directory: scatter_
+    group: layout-copy
+    purpose: 原地 scatter_.src / scatter_.value（无归约索引写入）。
+    route: A1 · Triton
+    key_result: kernel 41+11、op 41、黄金 41/41（Ascend910，纯 Triton）。
+    platforms:
+      ascend:
+        profiles: [ascend910]
+        implementation: Triton（tl.load/tl.store + 计算偏移）
+        evidence:
+          level: C1
+
 registration_contracts:
   cambricon-foundation:
     title: MLU 基础算子注册契约

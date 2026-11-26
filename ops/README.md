@@ -29,13 +29,13 @@ grep -rl my_op . | xargs sed -i 's/my_op/<你的算子名>/g'
 
 ## 平台覆盖口径
 
-目标范围是 **6 个厂商平台家族**。当前登记 **16 个算子**：**3 个核心多平台算子**、**13 个基础 ATen 算子**。
+目标范围是 **6 个厂商平台家族**。当前登记 **17 个算子**：**3 个核心多平台算子**、**14 个基础 ATen 算子**。
 这是一个增量交付子集，不是完整平台矩阵。`planned` 只表示目标范围，
 不表示支持完成；只有进入算子条目并带有测试与报告的平台才计为已交付。
 
 | 目标平台 | 当前状态 | 已登记算子 | 当前 profile / 型号 |
 |---|---|---:|---|
-| 华为昇腾（`ascend`） | 部分交付 | 3 | `ascend910` · `ascend910-c2-vllm` |
+| 华为昇腾（`ascend`） | 部分交付 | 4 | `ascend910` · `ascend910-c2-vllm` |
 | 寒武纪（`cambricon`） | 部分交付 | 15 | `cambricon` · `mlu590` |
 | 昆仑芯（`kunlunxin`） | 部分交付 | 16 | `p800-kunlunxin` · `p800-kunlunxin-gems5` |
 | 平头哥（`thead`） | 部分交付 | 3 | `thead-ppu` · `thead-ppu-c2` |
@@ -68,6 +68,7 @@ grep -rl my_op . | xargs sed -i 's/my_op/<你的算子名>/g'
 | [clone](clone/) | 复制 tensor 到独立存储。 | A1 · Triton | 黄金 48/48；op 层测试覆盖包态执行。 |
 | [contiguous](contiguous/) | 返回连续存储；输入本身连续时保持别名。 | A1 · Triton | 黄金 114/114；转置路径使用 2D swizzle 调度。 |
 | [copy_](copy_/) | 写入已有 tensor，支持布局和广播。 | A1 · Triton | 黄金 78/78。 |
+| [scatter_](scatter_/) | 原地 scatter_.src / scatter_.value（无归约索引写入）。 | A1 · Triton | kernel 41+11、op 41、黄金 41/41（Ascend910，纯 Triton）。 |
 
 ### 随机与 autograd 语义
 

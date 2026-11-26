@@ -25,8 +25,8 @@
 | 越界检查 | Python 侧 `((index<0)|(index>=limit)).any()`，写入前抛错（`tl.device_assert` 不可靠） |
 | dtype | fp16/bf16/fp32/int8/uint8/int16/int32/int64/bool；**fp64 回退原生 redispatch**（BiSheng 不支持 64-bit float） |
 | 原地语义 | 返回同一张量；`_version` 由实现 `increment_version` 递增（注册 Autograd key 后 dispatcher 不自增） |
-| 证据 | kernel 41 + 边界 11；op 41（命中/版本）；黄金 41/41；framework mini consumer 1 |
-| 级别 | **C1**（mini consumer）；真实 vLLM C2 见后续 |
+| 证据 | kernel 41 + 边界 11；op 41；黄金 41/41；framework 1；真实 vLLM C2 命中 8、输出一致 |
+| 级别 | **C2**（src，真实 vLLM top-k/top-p 命中，complete-pending-review）；value 为 C1 |
 
 ## 3. 参考（P800 / PR #62）
 

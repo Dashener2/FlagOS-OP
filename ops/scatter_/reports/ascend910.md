@@ -20,4 +20,5 @@
 - op 层：41 次命中，原地返回、`_version+1` 正确。
 - 黄金：41/41（SHA256 校验 + 精确回放）。
 - framework：mini consumer（token-selection）输出一致，命中 1。
-- 级别：C1。
+- 真实 vLLM C2：PlatformFL/npu 单进程；top-k/top-p 采样命中 scatter_.src 8 次，输出与基线逐 token 一致。
+- 级别：C2（src，complete-pending-review）；value 为 C1。

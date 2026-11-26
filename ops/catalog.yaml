@@ -381,13 +381,16 @@ operators:
     group: layout-copy
     purpose: 原地 scatter_.src / scatter_.value（无归约索引写入）。
     route: A1 · Triton
-    key_result: kernel 41+11、op 41、黄金 41/41（Ascend910，纯 Triton）。
+    key_result: kernel 41+11、op 41、黄金 41/41；真实 vLLM top-k/top-p 采样命中 scatter_.src 8 次、输出与基线逐 token 一致（Ascend910，C2，complete-pending-review）。
     platforms:
       ascend:
         profiles: [ascend910]
-        implementation: Triton（tl.load/tl.store + 计算偏移）
+        implementation: Triton（tl.load/tl.store + 计算偏移）；fp64 回退原生
         evidence:
-          level: C1
+          - profile: ascend910
+            level: C2
+            report: ops/scatter_/reports/vllm.md
+            status: complete-pending-review
 
 registration_contracts:
   cambricon-foundation:

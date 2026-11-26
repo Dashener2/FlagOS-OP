@@ -1,6 +1,6 @@
 """Real vLLM generation, baseline or A1 injection, using a local tiny model.
 
-Run each mode in a fresh process in the P800 container. Single-process v1
+Run each mode in a fresh process in the target container. Single-process v1
 engine keeps the measured registration/counters in the model worker process.
 """
 import argparse
@@ -15,12 +15,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 os.environ["VLLM_ENABLE_V1_MULTIPROCESSING"] = "0"
 os.environ["VLLM_USE_FLASHINFER_SAMPLER"] = "0"
 os.environ["USE_FLAGGEMS"] = "0"
+os.environ.setdefault("TASK_QUEUE_ENABLE", "0")
 
 
 def main():
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument("--mode", choices=("prepare", "baseline", "injected"), required=True)
     parser.add_argument("--model", required=True)
+    parser.add_argument("--device-profile", default="ascend910")
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
     import torch
@@ -38,13 +40,15 @@ def main():
         print("Saved deterministic random-weight Qwen3 model:", args.model)
         return
 
-    import torch_xmlir  # noqa: F401
+    import torch_npu  # noqa: F401
+    from common.device import load_profile
     from vllm import LLM, SamplingParams
+    profile = load_profile(args.device_profile)
     llm = LLM(model=args.model, skip_tokenizer_init=True, dtype="bfloat16",
               enforce_eager=True, max_model_len=128, max_num_seqs=2,
               max_num_batched_tokens=128, tensor_parallel_size=1,
-              gpu_memory_utilization=0.05, seed=20261126,
-              enable_prefix_caching=False, disable_log_stats=True)
+              seed=20261126, enable_prefix_caching=False,
+              disable_log_stats=True)
 
     class Counter(dict):
         first_stack = None
@@ -58,7 +62,8 @@ def main():
     lib = None
     if args.mode == "injected":
         from ops.scatter_ import register_a1
-        lib = register_a1("CUDA", counter=counter, platform="p800-kunlunxin-gems5")
+        lib = register_a1(profile.dispatch_key, counter=counter,
+                          platform=profile.vendor)
     prompts = [{"prompt_token_ids": [1, 17, 23, 42]},
                {"prompt_token_ids": [1, 73, 8, 16, 39]}]
     params = SamplingParams(max_tokens=8, temperature=0.8, top_k=32,
@@ -66,7 +71,7 @@ def main():
                             detokenize=False)
     outputs = llm.generate(prompts, params, use_tqdm=False)
     result = {"mode": args.mode, "model": args.model,
-              "profile": "p800-kunlunxin-gems5",
+              "profile": profile.name,
               "model_sha256": {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                                for p in sorted(Path(args.model).iterdir())
                                if p.suffix in (".json", ".safetensors")},

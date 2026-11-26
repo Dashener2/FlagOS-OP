@@ -1,8 +1,9 @@
-# aten.scatter_ — Triton / A1
+# aten.scatter_ — Triton / A1（Ascend910）
 
-无归约原地索引写入，已在昆仑芯 P800 XMLIR gems5 栈完成三层验证。
-src 重载已补齐真实 vLLM C2（随机权重 Qwen3）；value 为 C1 mini consumer。
-性能目前低于原生，适合作为兼容性开发样例。
+无归约原地索引写入。已在 **Ascend910**（torch_npu / triton-ascend / PlatformFL）
+完成 kernel、A1、黄金、framework 与**真实 vLLM C2**（src 生成阶段命中 8 次，
+输出与基线逐 token 一致）；value 为 C1。参考 P800 gems5 的 PR #62：
+其 kernelGen TLE/DSA 初稿在本栈编译失败，本实现为**纯 Triton**。
 
 ## 接口与范围
 
@@ -22,36 +23,36 @@ int8/uint8/int16/int32/int64、bool 已有设备用例。
 python3 -m pytest tests/unit/test_scatter_metadata.py -q
 python3 ops/scatter_/script/gen_golden.py
 python3 ops/scatter_/script/check_accuracy.py --impl torch --device cpu
-# 取得空闲设备使用许可、配置好可见卡后才执行
-python3 ops/scatter_/example.py p800-kunlunxin-gems5 --torch-device cuda:0
-python3 ops/scatter_/script/check_accuracy.py --impl triton --device p800-kunlunxin-gems5 --torch-device cuda:0
-python3 ops/scatter_/script/bench_perf.py --device p800-kunlunxin-gems5 --torch-device cuda:0 --out scatter-perf.json
+# 取到空闲 NPU、配置好可见卡后
+python3 ops/scatter_/example.py ascend910
+python3 ops/scatter_/script/check_accuracy.py --impl triton --device ascend910 --torch-device npu:0
+# 真实 vLLM（C2）
+python3 ops/scatter_/test/vllm_runner.py --mode prepare  --model /tmp/scatter-qwen3-tiny
+python3 ops/scatter_/test/vllm_runner.py --mode baseline --model /tmp/scatter-qwen3-tiny --out /tmp/base.json
+python3 ops/scatter_/test/vllm_runner.py --mode injected --model /tmp/scatter-qwen3-tiny --out /tmp/inj.json
+python3 ops/scatter_/script/check_vllm.py /tmp/base.json /tmp/inj.json --out /tmp/c2.json
 ```
 
-预期：三层分别返回 `ok: True`，黄金全部精确相等；性能无预设加速承诺。
-默认 example 应用层为 token-selection mini consumer（C1）。
-真实 vLLM 单独运行，复现及证据范围见 [reports/vllm.md](reports/vllm.md)。
-注册仅覆盖 CUDA backend，让原生 ADInplaceOrView 维护版本计数，
-Library 必须保持引用；测试结束销毁注册。算子包导入不加载 Triton。
+## 平台绑定（Ascend910）与内核设计
 
-## 内核设计
-
-一个线程处理一个 index 元素，以 index shape 解码坐标，分别计算
-index/src/dst 的 stride 地址。地址使用 int64；整块 block=256，
-元素数整除 16384 时用大块，尾部使用独立 BLOCK=1 程序。
-XMLIR 的 masked scatter 和重复尾写实测会产生错值，不能依靠掩码补齐。
-该栈忽略 device_assert，因此在写入前执行索引范围检查并同步判定；
-这是额外性能开销。无 autotune；启动置于 `torch_device_fn.device` 上下文。
+- A1：注册 `scatter_.src` / `scatter_.value` 到 **AutogradPrivateUse1**（+PrivateUse1）；
+  `_version` 由实现递增（Autograd key 下 dispatcher 不自增）。
+- 纯 Triton：host 端按 `index.shape` 计算 `base_off`（dst 非 dim 维）与
+  `src_base`（全维）偏移，kernel 内 `dst_off = base + idx*stride_dim`，
+  `tl.store` 写回；地址 int64，**BLOCK=1024**（4096 触发 UB 溢出）。
+- 越界在写入前由 Python 侧 `any()` 检查并抛错（该栈 device_assert 不可靠）。
+- fp64 回退原生 redispatch（BiSheng 不支持 64-bit float）。
+- 无 autotune；启动置于 `torch_device_fn.device` 上下文。
+- 平台细节见 [PLATFORM.md](PLATFORM.md)，证据见
+  [reports/vllm.md](reports/vllm.md)（C2）与 [reports/ascend910.md](reports/ascend910.md)。
+  P800 参考材料归档于 [reports/p800-reference/](reports/p800-reference/)。
 
 ## 合并前检查
 
 - [x] 核心八件及包化入口
-- [x] 设备三层测试、黄金验证、性能实测
-- [x] 登记 catalog 平台证据
-- [x] CI 等价全库包化扫描 17/17、基础设施回归 186/186
-- [x] 可复现环境和测试结果写入报告
+- [x] 设备三层测试（kernel 41+11、op 41、framework 1）与黄金 41/41
+- [x] 真实 vLLM C2（src，top-k/top-p 路径，输出一致、命中 8）
+- [x] 登记 catalog ascend910 C2 证据（complete-pending-review）
+- [x] `pytest tests/unit` 96 passed；包化扫描通过
 
-仓库 `ops/test_packaging.py` 还包含 Ascend 专用端到端测试，P800 环境
-不执行该部分；这里的包化结果是 CI 的逐目录导入/导出扫描。
-
-参考 Dashener2 的 PR #5、#34、#42 及仓库 operator 模板。
+参考 Dashener2 的 PR #62（P800）与本仓库 operator 模板。

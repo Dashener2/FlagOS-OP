@@ -26,7 +26,8 @@ def main():
               "overload": "scatter_.src", "model_kind": inj["model_kind"],
               "baseline": args.baseline.name, "injected": args.injected.name,
               "model_sha256": inj["model_sha256"],
-              "scope": "P800 gems5, TP=1 eager single-process engine, random Qwen3; top-k/top-p sampling"}
+              "scope": (f"{inj['profile']}, TP=1 eager single-process engine, "
+                        "random Qwen3; top-k/top-p sampling")}
     args.out.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
 

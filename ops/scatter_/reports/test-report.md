@@ -11,5 +11,7 @@ CI 等价包化导入扫描 17/17 通过。
 设备软件栈核对 `check_env --device p800-kunlunxin-gems5` 通过。
 
 应用层为 token-selection mini consumer，基线/注册后精确比较且命中计数为 1。
-此为 C1，不声明真实 vLLM C2。训练/反向传播不是本次验证范围。
+此为 C1。另有真实 vLLM C2：随机权重 Qwen3，生成阶段 src 命中 8 次，
+两请求共 16 个 token 与基线精确一致；见 vllm.md 与 vllm-c2.json。
+训练/反向传播不是本次验证范围。
 结构化结果见 `test-p800.json`；运行方式见上级 README。

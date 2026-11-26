@@ -68,7 +68,7 @@ grep -rl my_op . | xargs sed -i 's/my_op/<你的算子名>/g'
 | [clone](clone/) | 复制 tensor 到独立存储。 | A1 · Triton | C1（cambricon · p800-kunlunxin） | 黄金 48/48；op 层测试覆盖包态执行。 |
 | [contiguous](contiguous/) | 返回连续存储；输入本身连续时保持别名。 | A1 · Triton | C2（p800-kunlunxin） / C1（cambricon） | 黄金 114/114；转置路径使用 2D swizzle 调度。 |
 | [copy_](copy_/) | 写入已有 tensor，支持布局和广播。 | A1 · Triton | C1（cambricon · p800-kunlunxin） | 黄金 78/78。 |
-| [scatter_](scatter_/) | 无归约 Tensor/Scalar 原地索引写入，支持非连续 stride。 | A1 · Triton | C1（p800-kunlunxin-gems5） | P800 gems5 黄金 41/41、边界 11/11；性能低于原生。 |
+| [scatter_](scatter_/) | 无归约 Tensor/Scalar 原地索引写入，支持非连续 stride。 | A1 · Triton | C2（p800-kunlunxin-gems5） | P800 gems5 黄金 41/41、边界 11/11；性能低于原生。 |
 
 ### 随机与 autograd 语义
 

@@ -1,7 +1,8 @@
 # aten.scatter_ — Triton / A1
 
 无归约原地索引写入，已在昆仑芯 P800 XMLIR gems5 栈完成三层验证。
-证据为 C1 mini consumer；性能目前低于原生，适合作为兼容性开发样例。
+src 重载已补齐真实 vLLM C2（随机权重 Qwen3）；value 为 C1 mini consumer。
+性能目前低于原生，适合作为兼容性开发样例。
 
 ## 接口与范围
 
@@ -28,7 +29,8 @@ python3 ops/scatter_/script/bench_perf.py --device p800-kunlunxin-gems5 --torch-
 ```
 
 预期：三层分别返回 `ok: True`，黄金全部精确相等；性能无预设加速承诺。
-应用层为 token-selection mini consumer（C1），不是实际 vLLM C2。
+默认 example 应用层为 token-selection mini consumer（C1）。
+真实 vLLM 单独运行，复现及证据范围见 [reports/vllm.md](reports/vllm.md)。
 注册仅覆盖 CUDA backend，让原生 ADInplaceOrView 维护版本计数，
 Library 必须保持引用；测试结束销毁注册。算子包导入不加载 Triton。
 

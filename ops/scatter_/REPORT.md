@@ -1,7 +1,7 @@
 # scatter_ 交付报告
 
-2026-11-26，Dashener2：Triton 级 / A1，p800-kunlunxin-gems5，C1。
-覆盖无归约 src/value 重载；推理用途。不声明真实 vLLM C2。
+2026-11-26，Dashener2：Triton 级 / A1，p800-kunlunxin-gems5。
+覆盖无归约 src/value 重载；推理用途。src 补齐真实 vLLM C2；value 为 C1。
 
 | 检查 | 实测结果 |
 |---|---|
@@ -9,6 +9,7 @@
 | 额外边界 | 11/11，含越界拒绝、重复索引、int64 大标量、4D/5D、大块 |
 | A1 | 41/41，返回对象及版本计数检查通过 |
 | mini consumer | token-selection 输出精确一致，命中 1 次 |
+| 真实 vLLM C2 | 随机权重 Qwen3，src 生成阶段命中 8 次，两请求共 16 token 精确一致 |
 | 黄金 | CPU 生成 + P800 Triton 回放 41/41，SHA256 校验 |
 | 稳定性 | 修复尾块后 kernel/A1 连续 10 轮通过 |
 | 环境锁 | check_env p800-kunlunxin-gems5 = OK |
@@ -17,6 +18,7 @@
 | 性能 | 7×1031 为原生速度的 0.062x；128×4096 为 0.051x |
 
 结构化结果：`reports/test-p800.json`、`reports/perf-p800.json`。
+真实框架结果：`reports/vllm-c2.json`，复现及范围见 `reports/vllm.md`。
 当前性能不能满足加速用途；本次作为正确性/注册/兼容性实现提交审阅。
 
 ## 复现环境
